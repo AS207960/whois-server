@@ -1,0 +1,61 @@
+{% extends 'whois/base.html' %}
+{% block content %}
+    <section class="stripe py-3 my-3 my-md-5">
+        <div class="container">
+            <div class="jumbotron">
+                <h1 class="display-4">Search our WHOIS &#x1f50d;</h1>
+                <hr class="my-4">
+                {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        <h4 class="alert-heading">Error!</h4>
+                        <p>There was an error processing your request</p>
+                        <hr>
+                        <p class="mb-0">{{ error }}</p>
+                    </div>
+                {% endif %}
+                <form action="" method="post">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="search-term">Search term</label>
+                        <input type="text" class="form-control" id="search-term" name="query">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Search</button>
+                </form>
+            </div>
+        </div>
+    </section>
+    <div class="container pt-5">
+        {% if objects %}
+            <h2>Found {{ objects|length }} object(s)</h2>
+            {% for object in objects %}
+                <hr>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-sm">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Key</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for element in object %}
+                                <tr>
+                                    <th>{{ element.key }}</th>
+                                    <td>
+                                        {% if element.is_url %}
+                                            <a href="{{ element.value }}">{{ element.value }}</a>
+                                        {% elif element.is_email %}
+                                            <a href="mailto:{{ element.value }}">{{ element.value }}</a>
+                                        {% else %}
+                                            {{ element.value }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+{% endblock %}

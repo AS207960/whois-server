@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package whois;
+
+service WHOIS {
+    rpc WHOISQuery (WHOISRequest) returns (WHOISReply) {}
+}
+
+message WHOISRequest {
+    string query = 1;
+}
+
+message WHOISReply {
+    message Element {
+        string key = 1;
+        string value = 2;
+    }
+
+    message Object {
+        repeated Element elements = 1;
+    }
+
+    repeated Object objects = 1;
+}

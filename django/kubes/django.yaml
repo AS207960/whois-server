@@ -1,0 +1,110 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: whois-django-static
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+#---
+#kind: PersistentVolumeClaim
+#apiVersion: v1
+#metadata:
+#  name: whois-django-media
+#spec:
+#  storageClassName: standard
+#  accessModes:
+#    - ReadWriteMany
+#  resources:
+#    requests:
+#      storage: 1Gi
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: whois-django-conf
+data:
+  HOST: whois-web.as207960.net
+  DJANGO_SETTINGS_MODULE: whois_client.settings
+  EXTERNAL_URL: "https://whois-web.as207960.net"
+  DB_HOST: "postgres"
+  DB_NAME: "whois"
+  WHOIS_ADDR: "domains-whois-grpc:50051"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whois-django
+  labels:
+    app: whois
+    part: django
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: whois
+      part: django
+  template:
+    metadata:
+      annotations:
+        cni.projectcalico.org/ipv6pools: "[\"default-ipv6-ippool\"]"
+      labels:
+        app: whois
+        part: django
+    spec:
+      volumes:
+        - name: static
+          persistentVolumeClaim:
+            claimName: whois-django-static
+      initContainers:
+        - name: django
+          image: as207960/whois-django:(version)
+          imagePullPolicy: Always
+          command: ["sh", "-c", "python3 manage.py collectstatic --noinput && python3 manage.py migrate"]
+          volumeMounts:
+            - mountPath: "/app/static/"
+              name: static
+          envFrom:
+            - configMapRef:
+                name: whois-django-conf
+            - secretRef:
+                name: whois-db-creds
+              prefix: "DB_"
+            - secretRef:
+                name: whois-django-secret
+      containers:
+        - name: gunicorn
+          image: as207960/whois-django:(version)
+          imagePullPolicy: Always
+          command: ["gunicorn", "-w", "8", "-b", "[::]:8000", "--forwarded-allow-ips", "*", "--access-logfile", "-", "whois_client.wsgi:application"]
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - mountPath: "/app/static/"
+              name: static
+          envFrom:
+            - configMapRef:
+                name: whois-django-conf
+            - secretRef:
+                name: whois-db-creds
+              prefix: "DB_"
+            - secretRef:
+                name: whois-django-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whois-django
+  labels:
+    app: whois
+    part: django
+spec:
+  selector:
+    app: whois
+    part: django
+  ports:
+    - port: 8000
+      targetPort: 8000
