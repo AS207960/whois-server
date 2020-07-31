@@ -1,0 +1,190 @@
+syntax = "proto3";
+
+package rdap;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+service RDAP {
+    rpc DomainLookup (LookupRequest) returns (Domain);
+    rpc EntityLookup (LookupRequest) returns (Entity);
+    rpc NameServerLookup (LookupRequest) returns (NameServer);
+}
+
+message LookupRequest {
+    string query = 1;
+}
+
+enum EventAction {
+    EventRegistration = 0;
+    EventReregistration = 1;
+    EventLastChanged = 2;
+    EventExpiration = 3;
+    EventDeletion = 4;
+    EventReinstantiation = 5;
+    EventTransfer = 6;
+    EventLocked = 7;
+    EventUnlocked = 8;
+}
+
+message Event {
+    EventAction action = 1;
+    google.protobuf.Timestamp date = 2;
+    google.protobuf.StringValue actor = 3;
+}
+
+enum EntityRole {
+    RoleRegistrant = 0;
+    RoleTechnical = 1;
+    RoleAdministrative = 2;
+    RoleAbuse = 3;
+    RoleBilling = 4;
+    RoleRegistrar = 5;
+    RoleReseller = 6;
+    RoleSponsor = 7;
+    RoleProxy = 8;
+    RoleNotifications = 9;
+    RoleNOC = 10;
+}
+
+enum Status {
+    StatusActive = 0;
+    StatusValidated = 1;
+    StatusRenewProhibited = 2;
+    StatusUpdateProhibited = 3;
+    StatusTransferProhibited = 4;
+    StatusDeleteProhibited = 5;
+    StatusProxy = 6;
+    StatusPrivate = 7;
+    StatusRemoved = 8;
+    StatusObscured = 9;
+    StatusAssociated = 10;
+    StatusInactive = 11;
+    StatusLocked = 12;
+    StatusPendingCreate = 13;
+    StatusPendingRenew = 14;
+    StatusPendingTransfer = 15;
+    StatusPendingUpdate = 16;
+    StatusPendingDelete = 17;
+    StatusPendingRestore = 18;
+    StatusAddPeriod = 19;
+    StatusAutoRenewPeriod = 20;
+    StatusRenewPeriod = 21;
+    StatusRedemptionPeriod = 22;
+    StatusTransferPeriod = 23;
+    StatusClientRenewProhibited = 24;
+    StatusClientUpdateProhibited = 25;
+    StatusClientTransferProhibited = 26;
+    StatusClientDeleteProhibited = 27;
+    StatusClientHold = 28;
+    StatusServerRenewProhibited = 29;
+    StatusServerUpdateProhibited = 30;
+    StatusServerTransferProhibited = 31;
+    StatusServerDeleteProhibited = 32;
+    StatusServerHold = 33;
+}
+
+message PublicID {
+    string type = 1;
+    string identifier = 2;
+}
+
+message Remark {
+    google.protobuf.StringValue title = 1;
+    google.protobuf.StringValue type = 2;
+    string description = 3;
+}
+
+message jCard {
+    message Property {
+        string name = 1;
+        map<string, string> properties = 2;
+
+        message TextArray {
+            repeated string data = 1;
+        }
+
+        message Extension {
+            string type = 1;
+            string value = 2;
+        }
+
+        oneof value {
+            string text = 3;
+            string uri = 4;
+            TextArray text_array = 5;
+            google.protobuf.Timestamp date = 6;
+            google.protobuf.Timestamp time = 7;
+            google.protobuf.Timestamp date_time = 8;
+            google.protobuf.Timestamp timestamp = 9;
+            bool boolean = 10;
+            int64 integer = 11;
+            double float = 12;
+            string language = 13;
+            Extension extension = 14;
+        }
+    }
+}
+
+message Entity {
+    string handle = 1;
+    jCard card = 2;
+    repeated EntityRole roles = 3;
+    repeated PublicID public_ids = 4;
+    repeated Entity entities = 5;
+    repeated Remark remarks = 6;
+    repeated Event events = 7;
+    repeated Status statuses = 8;
+    google.protobuf.StringValue port43 = 9;
+}
+
+message Domain {
+    message SecDNS {
+        message DSData {
+            int32 key_tag = 1;
+            int32 algorithm = 2;
+            int32 digest_type = 3;
+            string digest = 4;
+        }
+
+        message KeyData {
+            int32 flags = 1;
+            int32 protocol = 2;
+            int32 algorithm = 3;
+            string public_key = 4;
+        }
+
+        google.protobuf.BoolValue zone_signed = 1;
+        google.protobuf.BoolValue delegation_signed = 2;
+        google.protobuf.Int64Value max_sig_life = 3;
+        repeated DSData ds_data = 4;
+        repeated KeyData key_data = 5;
+    }
+
+    string handle = 1;
+    string name = 2;
+    repeated Event events = 3;
+    repeated NameServer name_servers = 4;
+    repeated PublicID public_ids = 5;
+    repeated Entity entities = 6;
+    repeated Status statuses = 7;
+    repeated Remark remarks = 8;
+    google.protobuf.StringValue port43 = 9;
+    SecDNS sec_dns = 10;
+}
+
+message NameServer {
+    string handle = 1;
+    string name = 2;
+    repeated Event events = 3;
+    IpAddresses ip_addresses = 4;
+    repeated Entity entities = 5;
+    repeated Status statuses = 6;
+    repeated Remark remarks = 7;
+    google.protobuf.StringValue port43 = 8;
+}
+
+message IpAddresses {
+    repeated string v4 = 1;
+    repeated string v6 = 2;
+}
