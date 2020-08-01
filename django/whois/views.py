@@ -4,6 +4,7 @@ import json
 import datetime
 from django.conf import settings
 from django.shortcuts import render
+from django.utils.safestring import mark_safe
 from .whois_grpc import whois_pb2_grpc, whois_pb2
 from .rdap_grpc import rdap_pb2_grpc, rdap_pb2
 from django.core.validators import URLValidator, EmailValidator
@@ -18,41 +19,32 @@ rdap_stub = rdap_pb2_grpc.RDAPStub(channel)
 def index(request):
     error = None
     objects = None
+    redirect = None
     if request.method == "POST":
         query_str = request.POST.get("query")
 
-        try:
-            res = stub.WHOISQuery(whois_pb2.WHOISRequest(
-                query=query_str
-            ))
-            url_val = URLValidator()
-            email_val = EmailValidator()
-            objects = []
-            for obj in res.objects:
-                object_data = []
-                for element in obj.elements:
-                    elm = {
-                        "key": element.key,
-                        "value": element.value
-                    }
-                    try:
-                        url_val(element.value.strip())
-                        elm["is_url"] = True
-                    except ValidationError:
-                        try:
-                            email_val(element.value.strip())
-                            elm["is_email"] = True
-                        except ValidationError:
-                            pass
-                    object_data.append(elm)
-                objects.append(object_data)
+        term = query_str.encode().decode("idna")
 
+        try:
+            res = rdap_stub.DomainLookup(rdap_pb2.LookupRequest(
+                query=term
+            ))
         except grpc.RpcError as rpc_error:
             error = rpc_error.details()
+        else:
+            if res.WhichOneof("response") == "redirect":
+                http_res = HttpResponse(status=302)
+                http_res["Location"] = res.redirect.rdap_uri
+                return http_res
+            elif res.WhichOneof("response") == "error":
+                error = mark_safe(f"{res.error.title}<br>{res.error.description}")
+            else:
+                objects = [map_domain(res.success)]
 
     return render(request, "whois/search.html", {
         "error": error,
-        "objects": objects
+        "objects": objects,
+        "redirect": redirect
     })
 
 

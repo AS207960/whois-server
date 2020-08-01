@@ -1,0 +1,6 @@
+{% if object.events %}
+    <h3>Events</h3>
+    {% for event in object.events %}
+        <p><b>{{ event.eventAction }}:</b> {{ event.eventDate }}</p>
+    {% endfor %}
+{% endif %}

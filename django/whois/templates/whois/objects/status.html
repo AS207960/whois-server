@@ -1,0 +1,8 @@
+{% if object.status %}
+    <h3>Statuses</h3>
+    <ul>
+        {% for status in object.status %}
+            <li>{{ status }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}

@@ -1,0 +1,37 @@
+<div class="card my-3">
+    <div class="card-header">
+        Name server
+    </div>
+    <div class="card-body">
+        <p><b>Name:</b> {{ object.ldhName }}</p>
+        <p><b>Unicode name:</b> {{ object.unicodeName }}</p>
+        <p><b>Handle:</b> {{ object.handle }}<br></p>
+        {% if object.port43 %}
+            <p><b>Port 43 WHOIS server:</b> {{ object.port43 }}</p>
+        {% endif %}
+        {% include "whois/objects/events.html" with object=object only %}
+        {% include "whois/objects/status.html" with object=object only %}
+        {% include "whois/objects/remarks.html" with object=object only %}
+        {% if object.ip_addresses %}
+            <h3>IP Addresses</h3>
+            <h4>IPv4</h4>
+            <ul>
+                {% for a in object.ip_addresses.v4 %}
+                    <li>a</li>
+                {% endfor %}
+            </ul>
+            <h4>IPv6</h4>
+            <ul>
+                {% for a in object.ip_addresses.v6 %}
+                    <li>a</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if object.entities %}
+            <h3>Entities</h3>
+            {% for entity in object.entities %}
+                {% include "whois/objects/entity.html" with object=entity only %}
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>

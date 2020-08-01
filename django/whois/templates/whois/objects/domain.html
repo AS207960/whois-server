@@ -1,0 +1,47 @@
+<div class="card my-3">
+    <div class="card-header">
+        Domain Name
+    </div>
+    <div class="card-body">
+        <p><b>Name:</b> {{ object.ldhName }}</p>
+        <p><b>Unicode name:</b> {{ object.unicodeName }}</p>
+        <p><b>Handle:</b> {{ object.handle }}<br></p>
+        {% if object.port43 %}
+            <p><b>Port 43 WHOIS server:</b> {{ object.port43 }}</p>
+        {% endif %}
+        {% include "whois/objects/events.html" with object=object only %}
+        {% include "whois/objects/status.html" with object=object only %}
+        {% include "whois/objects/remarks.html" with object=object only %}
+        {% include "whois/objects/public_ids.html" with object=object only %}
+        {% if object.entities %}
+            <h3>Entities</h3>
+            {% for entity in object.entities %}
+                {% include "whois/objects/entity.html" with object=entity only %}
+            {% endfor %}
+        {% endif %}
+        {% if object.nameservers %}
+            <h3>Name servers</h3>
+            {% for ns in object.nameservers %}
+                {% include "whois/objects/name_server.html" with object=ns only %}
+            {% endfor %}
+        {% endif %}
+        {% if object.secureDNS %}
+            <h3>DNSSEC</h3>
+            {% if "zone_signed" in object.secureDNS %}
+                <p><b>Zone signed:</b> {{ object.secureDNS.zone_signed }}</p>
+            {% endif %}
+            {% if "delegationSigned" in object.secureDNS %}
+                <p><b>Delegation signed:</b> {{ object.secureDNS.delegationSigned }}</p>
+            {% endif %}
+            {% if "maxSigLife" in object.secureDNS %}
+                <p><b>Maxium signature life:</b> {{ object.secureDNS.maxSigLife }}</p>
+            {% endif %}
+            {% for ds_data in object.securdeDNS.dsData %}
+                <p><b>DS Data:</b> {{ ds_data.keyTag }} {{ ds_data.algortihm }} {{ ds_data.digestType }} {{ ds_data.digest }}</p>
+            {% endfor %}
+            {% for key_data in object.securdeDNS.keyData %}
+                <p><b>Key Data:</b> {{ ds_data.flags }} {{ ds_data.protocol }} {{ ds_data.algorithm }} {{ ds_data.publicKey }}</p>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>

@@ -1,0 +1,6 @@
+{% if object.publicIds %}
+    <h3>Public IDs</h3>
+    {% for id in object.publicIds %}
+        <p><b>{{ id.type }}:</b> {{ id.identifier }}</p>
+    {% endfor %}
+{% endif %}

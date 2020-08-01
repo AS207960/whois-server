@@ -1,0 +1,29 @@
+<div class="card my-3">
+    <div class="card-header">
+        Entity
+    </div>
+    <div class="card-body">
+        <p><b>Handle:</b> {{ object.handle }}<br></p>
+        {% if object.port43 %}
+            <p><b>Port 43 WHOIS server:</b> {{ object.port43 }}</p>
+        {% endif %}
+        {% if object.roles %}
+            <h3>Roles</h3>
+            <ul>
+                {% for role in object.roles %}
+                    <li>{{ role }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% include "whois/objects/status.html" with object=object only %}
+        {% include "whois/objects/public_ids.html" with object=object only %}
+        {% include "whois/objects/remarks.html" with object=object only %}
+        {% include "whois/objects/vcard.html" with vcard=object.vcardArray only %}
+        {% if object.entities %}
+            <h3>Entities</h3>
+            {% for entity in object.entities %}
+                {% include "whois/objects/entity.html" with object=entity only %}
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>

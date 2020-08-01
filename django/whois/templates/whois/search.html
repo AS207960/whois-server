@@ -26,36 +26,18 @@
         </div>
     </section>
     <div class="container pt-5">
+        {% if redirect %}
+            <h2>Found elsewhere</h2>
+            <p>
+                See <a href="{{ redirect }}">{{ redirect }}</a>
+            </p>
+        {% endif %}
         {% if objects %}
             <h2>Found {{ objects|length }} object(s)</h2>
             {% for object in objects %}
-                <hr>
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover table-sm">
-                        <thead class="thead-dark">
-                            <tr>
-                                <th>Key</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for element in object %}
-                                <tr>
-                                    <th>{{ element.key }}</th>
-                                    <td>
-                                        {% if element.is_url %}
-                                            <a href="{{ element.value }}">{{ element.value }}</a>
-                                        {% elif element.is_email %}
-                                            <a href="mailto:{{ element.value }}">{{ element.value }}</a>
-                                        {% else %}
-                                            {{ element.value }}
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                {% if object.objectClassName == "domain" %}
+                    {% include "whois/objects/domain.html" with object=object only %}
+                {% endif %}
             {% endfor %}
         {% endif %}
     </div>

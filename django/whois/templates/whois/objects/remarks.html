@@ -1,0 +1,9 @@
+{% if object.remarks %}
+    <h3>Remarks</h3>
+    {% for remark in object.remarks %}
+        {% if remark.title %}
+            <h4>{{ remark.title }}</h4>
+        {% endif %}
+        <p>{{ remark.description|join:"<br>" }}</p>
+    {% endfor %}
+{% endif %}

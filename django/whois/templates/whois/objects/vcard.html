@@ -1,0 +1,93 @@
+{% load util %}
+{% for card in vcard %}
+    {% if card != "vcard" %}
+        <div class="card my-3">
+            <div class="card-header">
+                Contact details
+            </div>
+            <div class="card-body">
+                {% for item in card %}
+                    {% if item.0 != "version" %}
+                        <p>
+                            {% if item.0 == "fn" %}
+                                <b>Name:</b>
+                            {% elif item.0 == "kind" %}
+                                <b>Kind:</b>
+                            {% elif item.0 == "photo" %}
+                                <b>Photo:</b>
+                            {% elif item.0 == "bday" %}
+                                <b>Birthday:</b>
+                            {% elif item.0 == "adr" %}
+                                <b>Address:</b>
+                            {% elif item.0 == "tel" %}
+                                <b>Telephone:</b>
+                            {% elif item.0 == "email" %}
+                                <b>Email:</b>
+                            {% elif item.0 == "lang" %}
+                                <b>Language:</b>
+                            {% elif item.0 == "title" %}
+                                <b>Title:</b>
+                            {% elif item.0 == "role" %}
+                                <b>Role:</b>
+                            {% elif item.0 == "logo" %}
+                                <b>Logo:</b>
+                            {% elif item.0 == "url" %}
+                                <b>Website:</b>
+                            {% elif item.0 == "org" %}
+                                <b>Organisation:</b>
+                            {% elif item.0 == "note" %}
+                                <b>Note:</b>
+                            {% else %}
+                                <b>{{ item.0 }}:</b>
+                            {% endif %}
+                            {% if item.2 == "text" %}
+                                {% if item.0 == "kind" %}
+                                    {% if item.3 == "org" %}
+                                        Organisation
+                                    {% elif item.3 == "group" %}
+                                        Group
+                                    {% elif item.3 == "individual" %}
+                                        Individual
+                                    {% endif %}
+                                {% elif item.0 == "adr" %}
+                                    <br>
+                                    Street address: {{ item.3.0 }}<br>
+                                    Street address: {{ item.3.1 }}<br>
+                                    Street address: {{ item.3.2 }}<br>
+                                    Locality: {{ item.3.3 }}<br>
+                                    Region: {{ item.3.4 }}<br>
+                                    Postal code: {{ item.3.5 }}<br>
+                                    Country: {{ item.3.6 }}
+                                {% else %}
+                                    {% if item.3|get_type == "list" %}
+                                        <ul>
+                                        {% for i in item.3 %}
+                                            <li>{{ i}}</li>
+                                        {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        {{ item.3 }}
+                                    {% endif %}
+                                {% endif %}
+                            {% elif item.2 == "uri" %}
+                                <a href="{{ item.3 }}">{{ item.3 }}</a>
+                            {% elif item.2 == "language-tag" %}
+                                {{ item.3.upper }}
+                            {% else %}
+                                {{ item.3 }}
+                            {% endif %}
+
+                            {% if item.1.items %}
+                                <ul>
+                                {% for item, value in item.1.items %}
+                                    <li><b>{{ item }}:</b> {{ value }}</li>
+                                {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </p>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+{% endfor %}
