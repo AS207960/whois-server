@@ -25,7 +25,7 @@ SECRET_KEY = 'jp%h65=+g5@b$nlr0nx0qk733pck^(hjofw$oer0z+t386ubu$'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost", "45.129.95.4"]
 
 
 # Application definition
@@ -119,3 +119,5 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
+
+WHOIS_ADDR = "localhost:50051"
