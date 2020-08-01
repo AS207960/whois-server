@@ -393,6 +393,21 @@ def make_rdap_response(data, status):
             "particular purpose. We reserve the right to restrict your access to the WHOIS database at our sole "
             "discretion to ensure operational stability and restrict abuse."
         ]
+    }, {
+        "title": "Trans Rights",
+        "description": [
+            "████████ ██████   █████  ███    ██ ███████  ",
+            "   ██    ██   ██ ██   ██ ████   ██ ██       ",
+            "   ██    ██████  ███████ ██ ██  ██ ███████  ",
+            "   ██    ██   ██ ██   ██ ██  ██ ██      ██  ",
+            "   ██    ██   ██ ██   ██ ██   ████ ███████  ",
+            "                                            ",
+            "██████  ██  ██████  ██   ██ ████████ ███████",
+            "██   ██ ██ ██       ██   ██    ██    ██     ",
+            "██████  ██ ██   ███ ███████    ██    ███████",
+            "██   ██ ██ ██    ██ ██   ██    ██         ██",
+            "██   ██ ██  ██████  ██   ██    ██    ███████",
+        ]
     }])
     http_res = HttpResponse(json.dumps(data), status=status, content_type="application/rdap+json")
     return http_res
