@@ -363,7 +363,9 @@ def make_rdap_response(data, status):
         "icann_rdap_technical_implementation_guide_0"
     ]
     data["lang"] = "en"
-    data["notices"] = [{
+    if "notices" not in data:
+        data["notices"] = []
+    data["notices"].extend([{
         "title": "Status codes",
         "description": [
             "For more information on domain status codes, please visit https://icann.org/epp"
@@ -391,9 +393,22 @@ def make_rdap_response(data, status):
             "particular purpose. We reserve the right to restrict your access to the WHOIS database at our sole "
             "discretion to ensure operational stability and restrict abuse."
         ]
-    }]
+    }])
     http_res = HttpResponse(json.dumps(data), status=status, content_type="application/rdap+json")
     return http_res
+
+
+def rdap_help(request):
+    return make_rdap_response({
+        "notices": [{
+            "title": "RDAP Help",
+            "description": [
+                "domain/XXXX",
+                "nameserver/XXXX",
+                "entity/XXXX",
+            ]
+        }]
+    }, 200)
 
 
 def rdap_domain_lookup(request, term):
