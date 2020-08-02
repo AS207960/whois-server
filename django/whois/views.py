@@ -599,7 +599,8 @@ def make_rdap_response(data, status):
             "For more information on domain status codes, please visit https://icann.org/epp"
         ],
         "links": {
-            "href": "https://icann.org/epp"
+            "href": "https://icann.org/epp",
+            "title": "More information on domain status codes"
         }
     }, {
         "title": "RDDS Inaccuracy Complaint Form",
@@ -607,7 +608,8 @@ def make_rdap_response(data, status):
             "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
         ],
         "links": {
-            "href": "https://icann.org/wicf"
+            "href": "https://icann.org/wicf",
+            "title": "ICANN RDDS Inaccuracy Complaint Form"
         }
     }, {
         "title": "Terms of Use",
