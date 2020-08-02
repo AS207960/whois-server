@@ -287,6 +287,211 @@ def map_card(card: rdap_pb2.jCard):
     return ["vcard", elements]
 
 
+def map_js_card_to_jcard(card: rdap_pb2.JSCard):
+    elements = [
+        ["version", {}, "text", "4.0"],
+        ["uid", {}, "text", card.uid],
+    ]
+    if card.HasField("kind"):
+        elements.append(["kind", {}, "text", card.kind.value])
+    if card.HasField("full_name"):
+        elements.append(["fn", {}, "text", card.full_name.value])
+    if card.HasField("updated"):
+        elements.append(["rev", {}, "timestamp", card.updated.ToDatetime().isoformat()])
+    for online in card.online:
+        if online.HasField("type") and online.type.value == "uri":
+            if "photo" in online.labels:
+                elements.append(["photo", {}, "uri", online.value])
+            if "logo" in online.labels:
+                elements.append(["logo", {}, "uri", online.value])
+            else:
+                elements.append(["url", {}, "uri", online.value])
+    for anniversary in card.anniversaries:
+        if anniversary.type == "birth":
+            elements.append(["bday", {}, "date-time", anniversary.date.ToDatetime().isoformat()])
+        elif anniversary.type == "death":
+            elements.append(["deathday", {}, "date-time", anniversary.date.ToDatetime().isoformat()])
+    for address in card.addresses:
+        params = {}
+        if address.HasField("full_address"):
+            params["label"] = address.full_address.value
+        if address.HasField("preferred"):
+            params["pref"] = int(address.preferred.value)
+        if address.HasField("coordinates"):
+            params["geo"] = address.coordinates.value
+        if address.HasField("context"):
+            params["type"] = address.context.value
+        if address.HasField("country_code"):
+            params["cc"] = address.country_code.value
+        elements.append(["adr", params, "text", [
+            address.post_office_box.value if address.HasField("post_office_box") else "",
+            address.extension.value if address.HasField("extension") else "",
+            address.street.value.split("\n") if address.HasField("street") else "",
+            address.locality.value if address.HasField("locality") else "",
+            address.region.value if address.HasField("region") else "",
+            address.post_code.value if address.HasField("post_code") else "",
+            address.country.value if address.HasField("country") else ""
+        ]])
+    for phone in card.phones:
+        params = {}
+        if phone.HasField("type"):
+            params["type"] = phone.type.value
+        if phone.HasField("preferred"):
+            params["pref"] = int(phone.preferred.value)
+        elements.append(["tel", params, "uri", phone.value])
+    for email in card.emails:
+        params = {}
+        if email.HasField("type"):
+            params["type"] = email.type.value
+        if email.HasField("preferred"):
+            params["pref"] = int(email.preferred.value)
+        elements.append(["email", params, "text", email.value])
+    for item, value in dict(card.preferred_contact_languages).items():
+        for lang in value.languages:
+            params = {}
+            if lang.HasField("type"):
+                params["type"] = lang.type.value
+            if lang.HasField("preference"):
+                params["pref"] = lang.preference.value
+            elements.append(["lang", params, "language-tag", item])
+    for job_title in card.job_title:
+        elements.append(["title", {}, "text", job_title.value])
+    for role in card.role:
+        elements.append(["role", {}, "text", role.value])
+    for organisation in card.organisation:
+        elements.append(["org", {}, "text", organisation.value])
+    for personal_info in card.personal_info:
+        params = {}
+        if personal_info.HasField("level"):
+            if personal_info.level.info == "low":
+                params["level"] = "beginner"
+            elif personal_info.level.info == "medium":
+                params["level"] = "average"
+            elif personal_info.level.info == "high":
+                params["level"] = "expert"
+        elements.append([personal_info.type, params, "text", personal_info.value])
+    for note in card.notes:
+        elements.append(["note", {}, "text", note.value])
+    return elements
+
+
+def map_js_card(card: rdap_pb2.JSCard):
+    def map_localised_string(loc_string: rdap_pb2.JSCard.LocalisedString):
+        out = {
+            "value": loc_string.value,
+            "localizations": dict(loc_string.localisations)
+        }
+        if loc_string.HasField("language"):
+            out["language"] = loc_string.language.value
+        return out
+
+    def map_resource(resource: rdap_pb2.JSCard.Resource):
+        out = {
+            "value": resource.value,
+            "labels": {}
+        }
+        if resource.HasField("context"):
+            out["context"] = resource.context.value
+        if resource.HasField("type"):
+            out["type"] = resource.type.value
+        if resource.HasField("media_type"):
+            out["mediaType"] = resource.media_type.value
+        if resource.HasField("preferred"):
+            out["isPreferred"] = resource.preferred.value
+        for label in resource.labels:
+            out["labels"][label] = True
+        return out
+
+    def map_address(address: rdap_pb2.JSCard.Address):
+        out = {}
+        if address.HasField("context"):
+            out["context"] = address.context.value
+        if address.HasField("label"):
+            out["label"] = address.label.value
+        if address.HasField("full_address"):
+            out["fullAddress"] = map_localised_string(address.full_address)
+        if address.HasField("street"):
+            out["street"] = address.street.value
+        if address.HasField("extension"):
+            out["extension"] = address.extension.value
+        if address.HasField("locality"):
+            out["locality"] = address.locality.value
+        if address.HasField("region"):
+            out["region"] = address.region.value
+        if address.HasField("country"):
+            out["country"] = address.country.value
+        if address.HasField("post_office_box"):
+            out["postOfficeBox"] = address.post_office_box.value
+        if address.HasField("post_code"):
+            out["postcode"] = address.post_code.value
+        if address.HasField("country_code"):
+            out["countryCode"] = address.country_code.value
+        if address.HasField("coordinates"):
+            out["coordinates"] = address.coordinates.value
+        if address.HasField("timezone"):
+            out["timeZone"] = address.timezone.value
+        if address.HasField("preferred"):
+            out["isPreferred"] = address.preferred.value
+        return out
+
+    def map_anniversary(anniversary: rdap_pb2.JSCard.Anniversary):
+        out = {
+            "type": anniversary.type,
+        }
+        if anniversary.HasField("label"):
+            out["label"] = anniversary.label.value
+        if anniversary.HasField("date"):
+            out["date"] = anniversary.date.ToDatetime().date().isoformat()
+        if anniversary.HasField("place"):
+            out["place"] = map_address(anniversary.place)
+        return out
+
+    def map_personal_info(personal_info: rdap_pb2.JSCard.PersonalInfo):
+        out = {
+            "type": personal_info.type,
+            "value": personal_info.value
+        }
+        if personal_info.HasField("level"):
+            out["level"] = personal_info.level.value
+        return out
+
+    card_dict = {
+        "uid": card.uid,
+        "organization": list(map(map_localised_string, card.organisation)),
+        "jobTitle": list(map(map_localised_string, card.job_title)),
+        "role": list(map(map_localised_string, card.role)),
+        "emails": list(map(map_resource, card.emails)),
+        "phones": list(map(map_resource, card.phones)),
+        "online": list(map(map_resource, card.online)),
+        "preferredContactLanguages": {},
+        "addresses": list(map(map_address, card.addresses)),
+        "anniversaries": list(map(map_anniversary, card.anniversaries)),
+        "personalInfo": list(map(map_personal_info, card.personal_info)),
+        "notes": list(map(map_localised_string, card.notes)),
+        "categories": list(card.categories),
+    }
+    if card.HasField("updated"):
+        card_dict["upated"] = card.updated.ToDatetime().isoformat()
+    if card.HasField("kind"):
+        card_dict["kind"] = card.kind.value
+    if card.HasField("full_name"):
+        card_dict["full_name"] = map_localised_string(card.full_name)
+    if card.HasField("preferred_contact_method"):
+        card_dict["preferredContactMethod"] = card.preferred_contact_method.value
+    for item, value in dict(card.preferred_contact_languages).items():
+        l_array = []
+        for language in value.languages:
+            l_dict = {}
+            if language.HasField("type"):
+                l_dict["type"] = language.type.value
+            if language.HasField("preference"):
+                l_dict["preference"] = language.preference.value
+            l_array.append(l_dict)
+        card_dict["preferredContactLanguages"]["item"] = l_array
+
+    return card_dict
+
+
 def map_entity(entity: rdap_pb2.Entity) -> dict:
     out = {
         "objectClassName": "entity",
@@ -296,8 +501,12 @@ def map_entity(entity: rdap_pb2.Entity) -> dict:
         "entities": map_entities(entity.entities),
         "status": map_statuses(entity.statuses),
         "remarks": map_remarks(entity.remarks),
-        "vcardArray": map_card(entity.card),
     }
+    if entity.HasField("js_card"):
+        out["vcardArray"] = map_js_card_to_jcard(entity.js_card)
+        out["jscard"] = map_js_card(entity.js_card)
+    else:
+        out["vcardArray"] = map_card(entity.card)
     if entity.HasField("port43"):
         out["port43"] = entity.port43.value
     return out
@@ -429,6 +638,7 @@ def make_rdap_response(data, status):
         ]
     }])
     http_res = HttpResponse(json.dumps(data), status=status, content_type="application/rdap+json")
+    http_res["Access-Control-Allow-Origin"] = "*"
     return http_res
 
 
@@ -464,6 +674,7 @@ def rdap_domain_lookup(request, term):
     if res.WhichOneof("response") == "redirect":
         http_res = HttpResponse(status=302)
         http_res["Location"] = res.redirect.rdap_uri
+        http_res["Access-Control-Allow-Origin"] = "*"
         return http_res
     elif res.WhichOneof("response") == "error":
         data = {
@@ -498,6 +709,7 @@ def rdap_domain_search(request):
     if res.WhichOneof("response") == "redirect":
         http_res = HttpResponse(status=302)
         http_res["Location"] = res.redirect.rdap_uri
+        http_res["Access-Control-Allow-Origin"] = "*"
         return http_res
     elif res.WhichOneof("response") == "error":
         data = {
@@ -522,6 +734,7 @@ def rdap_entity_lookup(request, term):
     if res.WhichOneof("response") == "redirect":
         http_res = HttpResponse(status=302)
         http_res["Location"] = res.redirect.rdap_uri
+        http_res["Access-Control-Allow-Origin"] = "*"
         return http_res
     elif res.WhichOneof("response") == "error":
         data = {
@@ -554,6 +767,7 @@ def rdap_entity_search(request):
     if res.WhichOneof("response") == "redirect":
         http_res = HttpResponse(status=302)
         http_res["Location"] = res.redirect.rdap_uri
+        http_res["Access-Control-Allow-Origin"] = "*"
         return http_res
     elif res.WhichOneof("response") == "error":
         data = {
@@ -579,6 +793,7 @@ def rdap_name_server_lookup(request, term):
     if res.WhichOneof("response") == "redirect":
         http_res = HttpResponse(status=302)
         http_res["Location"] = res.redirect.rdap_uri
+        http_res["Access-Control-Allow-Origin"] = "*"
         return http_res
     elif res.WhichOneof("response") == "error":
         data = {
@@ -611,6 +826,7 @@ def rdap_name_server_search(request):
     if res.WhichOneof("response") == "redirect":
         http_res = HttpResponse(status=302)
         http_res["Location"] = res.redirect.rdap_uri
+        http_res["Access-Control-Allow-Origin"] = "*"
         return http_res
     elif res.WhichOneof("response") == "error":
         data = {
