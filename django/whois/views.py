@@ -372,7 +372,7 @@ def map_js_card_to_jcard(card: rdap_pb2.JSCard):
         elements.append([personal_info.type, params, "text", personal_info.value])
     for note in card.notes:
         elements.append(["note", {}, "text", note.value])
-    return elements
+    return ["vcard", elements]
 
 
 def map_js_card(card: rdap_pb2.JSCard):
