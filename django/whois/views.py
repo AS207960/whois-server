@@ -236,57 +236,6 @@ def map_remarks(remarks: typing.Iterable[rdap_pb2.Remark]) -> typing.List[dict]:
     return list(map(map_remark, remarks))
 
 
-def map_card(card: rdap_pb2.jCard):
-    elements = [
-        ["version", {}, "text", "4.0"]
-    ]
-    for element in card.properties:
-        if element.WhichOneof("value") == "text":
-            e_type = "text"
-            e_value = element.text
-        elif element.WhichOneof("value") == "uri":
-            e_type = "uri"
-            e_value = element.uri
-        elif element.WhichOneof("value") == "text_array":
-            e_type = "text"
-            e_value = list(element.text_array.data)
-        elif element.WhichOneof("value") == "date":
-            e_type = "date"
-            e_value = element.date.ToDatetime().date().isoformat()
-        elif element.WhichOneof("value") == "time":
-            e_type = "time"
-            e_value = element.time.ToDatetime().time().isoformat()
-        elif element.WhichOneof("value") == "date_time":
-            e_type = "date-time"
-            e_value = element.date_time.ToDatetime().isoformat()
-        elif element.WhichOneof("value") == "timestamp":
-            e_type = "timestamp"
-            e_value = element.timestamp.ToDatetime().isoformat()
-        elif element.WhichOneof("value") == "boolean":
-            e_type = "boolean"
-            e_value = element.boolean
-        elif element.WhichOneof("value") == "integer":
-            e_type = "integer"
-            e_value = element.integer
-        elif element.WhichOneof("value") == "float":
-            e_type = "float"
-            e_value = element.float
-        elif element.WhichOneof("value") == "language":
-            e_type = "language-tag"
-            e_value = element.language
-        else:
-            e_type = element.extension.type
-            e_value = element.extension.value
-
-        elements.append([
-            element.name,
-            dict(element.properties),
-            e_type,
-            e_value
-        ])
-    return ["vcard", elements]
-
-
 def map_js_card_to_jcard(card: rdap_pb2.JSCard):
     elements = [
         ["version", {}, "text", "4.0"],
@@ -305,7 +254,7 @@ def map_js_card_to_jcard(card: rdap_pb2.JSCard):
             if "logo" in online.labels:
                 elements.append(["logo", {}, "uri", online.value])
             else:
-                elements.append(["url", {}, "uri", online.value])
+                elements.append(["uri", {}, "uri", online.value])
     for anniversary in card.anniversaries:
         if anniversary.type == "birth":
             elements.append(["bday", {}, "date-time", anniversary.date.ToDatetime().isoformat()])
@@ -505,8 +454,6 @@ def map_entity(entity: rdap_pb2.Entity) -> dict:
     if entity.HasField("js_card"):
         out["vcardArray"] = map_js_card_to_jcard(entity.js_card)
         out["jscard"] = map_js_card(entity.js_card)
-    else:
-        out["vcardArray"] = map_card(entity.card)
     if entity.HasField("port43"):
         out["port43"] = entity.port43.value
     return out
@@ -588,7 +535,8 @@ def make_rdap_response(data, status):
     data["rdapConformance"] = [
         "rdap_level_0",
         "icann_rdap_response_profile_0",
-        "icann_rdap_technical_implementation_guide_0"
+        "icann_rdap_technical_implementation_guide_0",
+        "jscard"
     ]
     data["lang"] = "en"
     if "notices" not in data:
