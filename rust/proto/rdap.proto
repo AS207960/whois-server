@@ -6,13 +6,109 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 
 service RDAP {
-    rpc DomainLookup (LookupRequest) returns (Domain);
-    rpc EntityLookup (LookupRequest) returns (Entity);
-    rpc NameServerLookup (LookupRequest) returns (NameServer);
+    rpc DomainLookup (LookupRequest) returns (DomainResponse);
+    rpc EntityLookup (LookupRequest) returns (EntityResponse);
+    rpc NameServerLookup (LookupRequest) returns (NameServerResponse);
+    rpc DomainSearch (DomainSearchRequest) returns (DomainSearchResponse);
+    rpc EntitySearch (DomainSearchRequest) returns (EntitySearchResponse);
+    rpc NameServerSearch (DomainSearchRequest) returns (NameServerSearchResponse);
 }
 
 message LookupRequest {
     string query = 1;
+}
+
+message DomainSearchRequest {
+    oneof query {
+        string name = 1;
+        string ns_name = 2;
+        string ns_ip = 3;
+    }
+}
+
+message EntitySearchRequest {
+    oneof query {
+        string name = 1;
+        string handle = 2;
+    }
+}
+
+message NameServerSearchRequest {
+    oneof query {
+        string name = 1;
+        string ip = 2;
+    }
+}
+
+message ErrorResponse {
+    int32 error_code = 1;
+    string title = 2;
+    string description = 3;
+}
+
+message RedirectResponse {
+    string rdap_uri = 1;
+    string port43 = 2;
+}
+
+message DomainResponse {
+    oneof response {
+        Domain success = 1;
+        RedirectResponse redirect = 2;
+        ErrorResponse error = 3;
+    }
+}
+
+message DomainSearchResponse {
+    message Domains {
+        repeated Domain data = 1;
+    }
+
+    oneof response {
+        Domains success = 1;
+        RedirectResponse redirect = 2;
+        ErrorResponse error = 3;
+    }
+}
+
+message EntityResponse {
+    oneof response {
+        Entity success = 1;
+        RedirectResponse redirect = 2;
+        ErrorResponse error = 3;
+    }
+}
+
+message EntitySearchResponse {
+    message Entities {
+        repeated Entity data = 1;
+    }
+
+    oneof response {
+        Entities success = 1;
+        RedirectResponse redirect = 2;
+        ErrorResponse error = 3;
+    }
+}
+
+message NameServerResponse {
+    oneof response {
+        NameServer success = 1;
+        RedirectResponse redirect = 2;
+        ErrorResponse error = 3;
+    }
+}
+
+message NameServerSearchResponse {
+    message NameServers {
+        repeated NameServer data = 1;
+    }
+
+    oneof response {
+        NameServers success = 1;
+        RedirectResponse redirect = 2;
+        ErrorResponse error = 3;
+    }
 }
 
 enum EventAction {
@@ -25,6 +121,8 @@ enum EventAction {
     EventTransfer = 6;
     EventLocked = 7;
     EventUnlocked = 8;
+    EventRegistrarExpiration = 9;
+    EventLastUpdateOfRDAP = 10;
 }
 
 message Event {
@@ -124,6 +222,8 @@ message jCard {
             Extension extension = 14;
         }
     }
+
+    repeated Property properties = 1;
 }
 
 message Entity {

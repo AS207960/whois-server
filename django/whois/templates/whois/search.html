@@ -22,7 +22,16 @@
                     {% csrf_token %}
                     <div class="form-group">
                         <label for="search-term">Search term</label>
-                        <input type="text" class="form-control" id="search-term" name="query">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <select class="custom-select" name="type">
+                                    <option value="domain">Domains</option>
+                                    <option value="entity">Entities</option>
+                                    <option value="name_server">Name servers</option>
+                                </select>
+                            </div>
+                            <input type="text" class="form-control" id="search-term" name="query">
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Search</button>
                 </form>
@@ -36,7 +45,7 @@
                 See <a href="{{ redirect }}">{{ redirect }}</a>
             </p>
         {% endif %}
-        {% if objects %}
+        {% if objects != None %}
             <h2>Found {{ objects|length }} object(s)</h2>
             {% for object in objects %}
                 {% if object.objectClassName == "domain" %}
@@ -50,7 +59,8 @@
         </p>
         <h2>RDDS Inaccuracy Complaint Form</h2>
         <p>
-            URL of the ICANN RDDS Inaccuracy Complaint Form: <a href="https://icann.org/wicf ">https://icann.org/wicf</a>
+            URL of the ICANN RDDS Inaccuracy Complaint Form: <a
+                href="https://icann.org/wicf ">https://icann.org/wicf</a>
         </p>
         <h2>Terms of Use</h2>
         <p>

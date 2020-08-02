@@ -5,10 +5,8 @@ import datetime
 from django.conf import settings
 from django.shortcuts import render
 from django.utils.safestring import mark_safe
-from .whois_grpc import whois_pb2_grpc, whois_pb2
+from .whois_grpc import whois_pb2_grpc
 from .rdap_grpc import rdap_pb2_grpc, rdap_pb2
-from django.core.validators import URLValidator, EmailValidator
-from django.core.exceptions import ValidationError
 from django.http import HttpResponse
 
 channel = grpc.insecure_channel(settings.WHOIS_ADDR)
@@ -22,24 +20,49 @@ def index(request):
     redirect = None
     if request.method == "POST":
         query_str = request.POST.get("query")
-
-        term = query_str.encode().decode("idna")
+        query_type = request.POST.get("type")
 
         try:
-            res = rdap_stub.DomainLookup(rdap_pb2.LookupRequest(
-                query=term
-            ))
+            if query_type == "domain":
+                term = query_str.encode("idna").decode()
+                res = rdap_stub.DomainSearch(rdap_pb2.DomainSearchRequest(
+                    name=term
+                ))
+                res2 = None
+            elif query_type == "entity":
+                res = rdap_stub.EntitySearch(rdap_pb2.EntitySearchRequest(
+                    name=query_str
+                ))
+                res2 = rdap_stub.EntitySearch(rdap_pb2.EntitySearchRequest(
+                    handle=query_str
+                ))
+            elif query_type == "name_server":
+                term = query_str.encode("idna").decode()
+                res = rdap_stub.NameServerSearch(rdap_pb2.NameServerSearchRequest(
+                    name=term
+                ))
+                res2 = None
+            else:
+                res = None
+                res2 = None
         except grpc.RpcError as rpc_error:
             error = rpc_error.details()
         else:
-            if res.WhichOneof("response") == "redirect":
-                http_res = HttpResponse(status=302)
-                http_res["Location"] = res.redirect.rdap_uri
-                return http_res
-            elif res.WhichOneof("response") == "error":
-                error = mark_safe(f"{res.error.title}<br>{res.error.description}")
-            else:
-                objects = [map_domain(res.success)]
+            if res:
+                if res.WhichOneof("response") == "redirect":
+                    http_res = HttpResponse(status=302)
+                    http_res["Location"] = res.redirect.rdap_uri
+                    return http_res
+                elif res.WhichOneof("response") == "error":
+                    error = mark_safe(f"{res.error.title}<br>{res.error.description}")
+                else:
+                    if query_type == "domain":
+                        objects = map_domains(res.success.data)
+                    elif query_type == "entity":
+                        objects = map_entities(res.success.data)
+                        objects.extend(map_entities(res2.success.data))
+                    elif query_type == "name_server":
+                        objects = map_name_servers(res.success.data)
 
     return render(request, "whois/search.html", {
         "error": error,
@@ -348,6 +371,10 @@ def map_domain(domain: rdap_pb2.Domain) -> dict:
     return out
 
 
+def map_domains(domains: typing.Iterable[rdap_pb2.Domain]) -> typing.List[dict]:
+    return list(map(map_domain, domains))
+
+
 def make_rdap_response(data, status):
     data["rdapConformance"] = [
         "rdap_level_0",
@@ -413,13 +440,24 @@ def rdap_help(request):
                 "domain/XXXX",
                 "nameserver/XXXX",
                 "entity/XXXX",
-            ]
+                "domains?name=XXXX",
+                "domains?nsLdhName=XXXX",
+                "domains?nsIp=XXXX",
+                "nameservers?name=XXXX",
+                "nameservers?ip=XXXX",
+                "entities?fn=XXXX",
+                "entities?handle=XXXX",
+                "help",
+            ],
+            "links": {
+                "href": "https://whois-web.as207960.net"
+            }
         }]
     }, 200)
 
 
 def rdap_domain_lookup(request, term):
-    term = term.encode().decode("idna")
+    term = term.encode("idna").decode()
     res = rdap_stub.DomainLookup(rdap_pb2.LookupRequest(
         query=term
     ))
@@ -436,6 +474,42 @@ def rdap_domain_lookup(request, term):
         status = res.error.error_code
     else:
         data = map_domain(res.success)
+        status = 200
+
+    return make_rdap_response(data, status)
+
+
+def rdap_domain_search(request):
+    query = rdap_pb2.DomainSearchRequest()
+    if "name" in request.GET:
+        query.name = request.GET["name"].encode("idna").decode()
+    elif "nsLdhName" in request.GET:
+        query.ns_name = request.GET["nsLdhName"]
+    elif "nsIp" in request.GET:
+        query.ns_ip = request.GET["nsIp"]
+    else:
+        return make_rdap_response({
+            "errorCode": 400,
+            "title": "Bad request",
+            "description": "Unknown query parameter"
+        }, 400)
+
+    res = rdap_stub.DomainSearch(query)
+    if res.WhichOneof("response") == "redirect":
+        http_res = HttpResponse(status=302)
+        http_res["Location"] = res.redirect.rdap_uri
+        return http_res
+    elif res.WhichOneof("response") == "error":
+        data = {
+            "errorCode": res.error.error_code,
+            "title": res.error.title,
+            "description": res.error.description.split("\n")
+        }
+        status = res.error.error_code
+    else:
+        data = {
+            "domainSearchResults": map_domains(res.success.data)
+        }
         status = 200
 
     return make_rdap_response(data, status)
@@ -463,8 +537,42 @@ def rdap_entity_lookup(request, term):
     return make_rdap_response(data, status)
 
 
+def rdap_entity_search(request):
+    query = rdap_pb2.EntitySearchRequest()
+    if "fn" in request.GET:
+        query.name = request.GET["fn"]
+    elif "handle" in request.GET:
+        query.handle = request.GET["handle"]
+    else:
+        return make_rdap_response({
+            "errorCode": 400,
+            "title": "Bad request",
+            "description": "Unknown query parameter"
+        }, 400)
+
+    res = rdap_stub.EntitySearch(query)
+    if res.WhichOneof("response") == "redirect":
+        http_res = HttpResponse(status=302)
+        http_res["Location"] = res.redirect.rdap_uri
+        return http_res
+    elif res.WhichOneof("response") == "error":
+        data = {
+            "errorCode": res.error.error_code,
+            "title": res.error.title,
+            "description": res.error.description.split("\n")
+        }
+        status = res.error.error_code
+    else:
+        data = {
+            "entitySearchResults": map_entities(res.success.data)
+        }
+        status = 200
+
+    return make_rdap_response(data, status)
+
+
 def rdap_name_server_lookup(request, term):
-    term = term.encode().decode("idna")
+    term = term.encode("idna").decode()
     res = rdap_stub.NameServerLookup(rdap_pb2.LookupRequest(
         query=term
     ))
@@ -481,6 +589,40 @@ def rdap_name_server_lookup(request, term):
         status = res.error.error_code
     else:
         data = map_name_server(res.success)
+        status = 200
+
+    return make_rdap_response(data, status)
+
+
+def rdap_name_server_search(request):
+    query = rdap_pb2.NameServerSearchRequest()
+    if "name" in request.GET:
+        query.name = request.GET["name"].encode("idna").decode()
+    elif "ip" in request.GET:
+        query.ip = request.GET["ip"]
+    else:
+        return make_rdap_response({
+            "errorCode": 400,
+            "title": "Bad request",
+            "description": "Unknown query parameter"
+        }, 400)
+
+    res = rdap_stub.NameServerSearch(query)
+    if res.WhichOneof("response") == "redirect":
+        http_res = HttpResponse(status=302)
+        http_res["Location"] = res.redirect.rdap_uri
+        return http_res
+    elif res.WhichOneof("response") == "error":
+        data = {
+            "errorCode": res.error.error_code,
+            "title": res.error.title,
+            "description": res.error.description.split("\n")
+        }
+        status = res.error.error_code
+    else:
+        data = {
+            "nameserverSearchResults": map_name_servers(res.success.data)
+        }
         status = 200
 
     return make_rdap_response(data, status)
