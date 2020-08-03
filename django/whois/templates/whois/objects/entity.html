@@ -18,7 +18,7 @@
         {% include "whois/objects/status.html" with object=object only %}
         {% include "whois/objects/public_ids.html" with object=object only %}
         {% include "whois/objects/remarks.html" with object=object only %}
-        {% include "whois/objects/vcard.html" with vcard=object.vcardArray only %}
+        {% include "whois/objects/jscard.html" with card=object.jscard only %}
         {% if object.entities %}
             <h3>Entities</h3>
             {% for entity in object.entities %}
