@@ -424,7 +424,7 @@ def map_js_card(card: rdap_pb2.JSCard):
     if card.HasField("kind"):
         card_dict["kind"] = card.kind.value
     if card.HasField("full_name"):
-        card_dict["full_name"] = map_localised_string(card.full_name)
+        card_dict["fullName"] = map_localised_string(card.full_name)
     if card.HasField("preferred_contact_method"):
         card_dict["preferredContactMethod"] = card.preferred_contact_method.value
     for item, value in dict(card.preferred_contact_languages).items():

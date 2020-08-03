@@ -193,42 +193,84 @@ message Remark {
     string description = 3;
 }
 
-message jCard {
-    message Property {
-        string name = 1;
-        map<string, string> properties = 2;
-
-        message TextArray {
-            repeated string data = 1;
-        }
-
-        message Extension {
-            string type = 1;
-            string value = 2;
-        }
-
-        oneof value {
-            string text = 3;
-            string uri = 4;
-            TextArray text_array = 5;
-            google.protobuf.Timestamp date = 6;
-            google.protobuf.Timestamp time = 7;
-            google.protobuf.Timestamp date_time = 8;
-            google.protobuf.Timestamp timestamp = 9;
-            bool boolean = 10;
-            int64 integer = 11;
-            double float = 12;
-            string language = 13;
-            Extension extension = 14;
-        }
+message JSCard {
+    message LocalisedString {
+        string value = 1;
+        google.protobuf.StringValue language = 2;
+        map<string, string> localisations = 3;
     }
 
-    repeated Property properties = 1;
+    message Resource {
+        google.protobuf.StringValue context = 1;
+        google.protobuf.StringValue type = 2;
+        string value = 3;
+        google.protobuf.StringValue media_type = 4;
+        google.protobuf.BoolValue preferred = 5;
+        repeated string labels = 6;
+    }
+
+    message ContactLanguages {
+        message ContactLanguage {
+            google.protobuf.StringValue type = 1;
+            google.protobuf.Int32Value preference = 2;
+        }
+
+        repeated ContactLanguage languages = 1;
+    }
+
+    message Address {
+        google.protobuf.StringValue context = 1;
+        google.protobuf.StringValue label = 2;
+        LocalisedString full_address = 3;
+        google.protobuf.StringValue street = 4;
+        google.protobuf.StringValue extension = 5;
+        google.protobuf.StringValue locality = 6;
+        google.protobuf.StringValue region = 7;
+        google.protobuf.StringValue country = 8;
+        google.protobuf.StringValue post_office_box = 9;
+        google.protobuf.StringValue post_code = 10;
+        google.protobuf.StringValue country_code = 11;
+        google.protobuf.StringValue coordinates = 12;
+        google.protobuf.StringValue timezone = 13;
+        google.protobuf.BoolValue preferred = 14;
+    }
+
+    message Anniversary {
+        string type = 1;
+        google.protobuf.StringValue label = 2;
+        google.protobuf.Timestamp date = 3;
+        Address place = 4;
+    }
+
+    message PersonalInfo {
+        string type = 1;
+        string value = 2;
+        google.protobuf.StringValue level = 3;
+    }
+
+    string uid = 1;
+    google.protobuf.Timestamp updated = 2;
+    google.protobuf.StringValue kind = 3;
+    LocalisedString full_name = 4;
+    repeated LocalisedString organisation = 5;
+    repeated LocalisedString job_title = 6;
+    repeated LocalisedString role = 7;
+    repeated Resource emails = 8;
+    repeated Resource phones = 9;
+    repeated Resource online = 10;
+    google.protobuf.StringValue preferred_contact_method = 11;
+    map<string, ContactLanguages> preferred_contact_languages = 12;
+    repeated Address addresses = 13;
+    repeated Anniversary anniversaries = 14;
+    repeated PersonalInfo personal_info = 15;
+    repeated LocalisedString notes = 16;
+    repeated string categories = 17;
 }
 
 message Entity {
+    reserved 2;
     string handle = 1;
-    jCard card = 2;
+    JSCard js_card = 10;
     repeated EntityRole roles = 3;
     repeated PublicID public_ids = 4;
     repeated Entity entities = 5;

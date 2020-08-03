@@ -26,7 +26,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: whois
-          image: as207960/whois-server:3
+          image: as207960/whois-server:5
           imagePullPolicy: Always
           ports:
             - containerPort: 43
