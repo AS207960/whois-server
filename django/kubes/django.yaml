@@ -30,7 +30,7 @@ data:
   HOST: whois-web.as207960.net
   DJANGO_SETTINGS_MODULE: whois_client.settings
   EXTERNAL_URL: "https://whois-web.as207960.net"
-  DB_HOST: "postgres"
+  DB_HOST: "cockroachdb"
   DB_NAME: "whois"
   WHOIS_ADDR: "domains-whois-grpc:50051"
 ---
