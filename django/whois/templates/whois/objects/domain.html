@@ -27,19 +27,19 @@
         {% endif %}
         {% if object.secureDNS %}
             <h3>DNSSEC</h3>
-            {% if "zone_signed" in object.secureDNS %}
-                <p><b>Zone signed:</b> {{ object.secureDNS.zone_signed }}</p>
+            {% if "zoneSigned" in object.secureDNS %}
+                <p><b>Zone signed:</b> {{ object.secureDNS.zoneSigned }}</p>
             {% endif %}
             {% if "delegationSigned" in object.secureDNS %}
                 <p><b>Delegation signed:</b> {{ object.secureDNS.delegationSigned }}</p>
             {% endif %}
             {% if "maxSigLife" in object.secureDNS %}
-                <p><b>Maxium signature life:</b> {{ object.secureDNS.maxSigLife }}</p>
+                <p><b>Maximum signature life:</b> {{ object.secureDNS.maxSigLife }}</p>
             {% endif %}
-            {% for ds_data in object.securdeDNS.dsData %}
+            {% for ds_data in object.secureDNS.dsData %}
                 <p><b>DS Data:</b> {{ ds_data.keyTag }} {{ ds_data.algortihm }} {{ ds_data.digestType }} {{ ds_data.digest }}</p>
             {% endfor %}
-            {% for key_data in object.securdeDNS.keyData %}
+            {% for key_data in object.secureDNS.keyData %}
                 <p><b>Key Data:</b> {{ ds_data.flags }} {{ ds_data.protocol }} {{ ds_data.algorithm }} {{ ds_data.publicKey }}</p>
             {% endfor %}
         {% endif %}
