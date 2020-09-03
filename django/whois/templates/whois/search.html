@@ -50,6 +50,10 @@
             {% for object in objects %}
                 {% if object.objectClassName == "domain" %}
                     {% include "whois/objects/domain.html" with object=object only %}
+                {% elif object.objectClassName == "entity" %}
+                    {% include "whois/objects/entity.html" with object=object only %}
+                {% elif object.objectClassName == "nameserver" %}
+                    {% include "whois/objects/name_server.html" with object=object only %}
                 {% endif %}
             {% endfor %}
         {% endif %}
