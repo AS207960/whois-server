@@ -1,4 +1,5 @@
 {% extends 'whois/base.html' %}
+{% load static %}
 {% block content %}
     <div class="my-5"></div>
     <section class="stripe">
@@ -57,14 +58,17 @@
                 {% endif %}
             {% endfor %}
         {% endif %}
+        <h2>WHOIS by Post</h2>
+        <p>
+            To submit a postal WHOIS query, please complete and send in <a href="{% static "whois/whois-form.pdf" %}">this form</a>.
         <h2>Status codes</h2>
         <p>
-            For more information on domain status codes, please visit <a href="https://icann.org/epp">https://icann.org/epp</a>
+            For more information on domain status codes, please visit <a href="https://icann.org/epp">https://icann.org/epp</a>.
         </p>
         <h2>RDDS Inaccuracy Complaint Form</h2>
         <p>
             URL of the ICANN RDDS Inaccuracy Complaint Form: <a
-                href="https://icann.org/wicf ">https://icann.org/wicf</a>
+                href="https://icann.org/wicf ">https://icann.org/wicf</a>.
         </p>
         <h2>Terms of Use</h2>
         <p>
