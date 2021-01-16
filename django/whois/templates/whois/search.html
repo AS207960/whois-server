@@ -4,7 +4,7 @@
     <div class="my-5"></div>
     <section class="stripe">
         <div class="container my-3">
-            <div class="jumbotron">
+            <div class="bg-light p-3 rounded my-4">
                 <h1 class="display-4">Search our WHOIS &#x1f50d;</h1>
                 <p>
                     Also available at whois.as207960.net for port 43 service, and https://whois-web.as207960.net/rdap
@@ -21,20 +21,18 @@
                 {% endif %}
                 <form action="" method="post">
                     {% csrf_token %}
-                    <div class="form-group">
+                    <div class="form-group my-3">
                         <label for="search-term">Search term</label>
                         <div class="input-group">
-                            <div class="input-group-prepend">
-                                <select class="custom-select" name="type">
-                                    <option value="domain">Domains</option>
-                                    <option value="entity">Entities</option>
-                                    <option value="name_server">Name servers</option>
-                                </select>
-                            </div>
-                            <input type="text" class="form-control" id="search-term" name="query">
+                            <select class="form-select" name="type">
+                                <option value="domain">Domains</option>
+                                <option value="entity">Entities</option>
+                                <option value="name_server">Name servers</option>
+                            </select>
+                            <input type="text" class="form-control" id="search-term" name="query" style="flex-basis: 70%;">
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Search</button>
+                    <button type="submit" class="btn btn-primary w-100">Search</button>
                 </form>
             </div>
         </div>
