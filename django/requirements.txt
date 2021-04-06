@@ -3,4 +3,4 @@ grpcio
 protobuf
 psycopg2-binary
 gunicorn
-django-cockroachdb==3.1.*
+django-cockroachdb==3.2.*
