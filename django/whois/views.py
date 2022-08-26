@@ -474,8 +474,8 @@ def map_name_server(name_server: rdap_pb2.NameServer) -> dict:
     }
     if name_server.HasField("ip_addresses"):
         out["ipAddresses"] = {
-            "v4": name_server.ip_addresses.v4,
-            "v6": name_server.ip_addresses.v6
+            "v4": list(name_server.ip_addresses.v4),
+            "v6": list(name_server.ip_addresses.v6)
         }
     if name_server.HasField("port43"):
         out["port43"] = name_server.port43.value
