@@ -5,12 +5,10 @@ import datetime
 from django.conf import settings
 from django.shortcuts import render
 from django.utils.safestring import mark_safe
-from .whois_grpc import whois_pb2_grpc
 from .rdap_grpc import rdap_pb2_grpc, rdap_pb2
 from django.http import HttpResponse
 
 channel = grpc.insecure_channel(settings.WHOIS_ADDR)
-stub = whois_pb2_grpc.WHOISStub(channel)
 rdap_stub = rdap_pb2_grpc.RDAPStub(channel)
 
 
