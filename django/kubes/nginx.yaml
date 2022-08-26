@@ -141,6 +141,7 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt"
     nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
 spec:
   tls:
     - hosts:
