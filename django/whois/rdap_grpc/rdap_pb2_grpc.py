@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import rdap_pb2 as rdap__pb2
+from . import rdap_pb2 as rdap__pb2
 
 
 class RDAPStub(object):
