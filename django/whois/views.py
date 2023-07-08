@@ -532,6 +532,7 @@ def map_domains(domains: typing.Iterable[rdap_pb2.Domain]) -> typing.List[dict]:
 def make_rdap_response(data, status):
     data["rdapConformance"] = [
         "rdap_level_0",
+        "rdap_objectTag_level_0",
         "icann_rdap_response_profile_0",
         "icann_rdap_technical_implementation_guide_0",
         "jscard"

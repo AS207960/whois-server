@@ -535,22 +535,6 @@ async fn process_socket<T: tokio::io::AsyncRead + tokio::io::AsyncWrite + std::m
                 }
                 None => {}
             }
-//            for object in response.objects {
-//                for element in object.elements {
-//                    match socket.write(format!("{}: {}\r\n", element.key, element.value).as_bytes()).await {
-//                        Ok(_) => {}
-//                        Err(_) => {
-//                            return;
-//                        }
-//                    };
-//                }
-//                match socket.write(b"\r\n").await {
-//                    Ok(_) => {}
-//                    Err(_) => {
-//                        return;
-//                    }
-//                };
-//            }
         },
         Err(e) => {
             match socket.write(format!(">>> Error: {:?}, {}\r\n\r\n", e.code(), e.message()).as_bytes()).await {
