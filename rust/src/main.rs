@@ -5,9 +5,6 @@ extern crate lazy_static;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-pub mod whois {
-    tonic::include_proto!("whois");
-}
 pub mod rdap {
     tonic::include_proto!("rdap");
 }
@@ -316,7 +313,7 @@ fn js_card_to_whois(card: &rdap::JsCard) -> Vec<String> {
                 if let Some(label) = &anniversary.label {
                     value += &format!(", {}", label)
                 }
-                out.push(format!("{}: {}", value, date.date().format("%F")))
+                out.push(format!("{}: {}", value, date.date_naive().format("%F")))
             }
         }
     }

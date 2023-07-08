@@ -20,47 +20,49 @@ def index(request):
         query_str = request.POST.get("query")
         query_type = request.POST.get("type")
 
-        try:
-            if query_type == "domain":
-                term = query_str.encode("idna").decode()
-                res = rdap_stub.DomainSearch(rdap_pb2.DomainSearchRequest(
-                    name=term
-                ))
-                res2 = None
-            elif query_type == "entity":
-                res = rdap_stub.EntitySearch(rdap_pb2.EntitySearchRequest(
-                    name=query_str
-                ))
-                res2 = rdap_stub.EntitySearch(rdap_pb2.EntitySearchRequest(
-                    handle=query_str
-                ))
-            elif query_type == "name_server":
-                term = query_str.encode("idna").decode()
-                res = rdap_stub.NameServerSearch(rdap_pb2.NameServerSearchRequest(
-                    name=term
-                ))
-                res2 = None
-            else:
-                res = None
-                res2 = None
-        except grpc.RpcError as rpc_error:
-            error = rpc_error.details()
-        else:
-            if res:
-                if res.WhichOneof("response") == "redirect":
-                    http_res = HttpResponse(status=302)
-                    http_res["Location"] = res.redirect.rdap_uri
-                    return http_res
-                elif res.WhichOneof("response") == "error":
-                    error = mark_safe(f"{res.error.title}<br>{res.error.description}")
+        if query_str:
+            try:
+                print(query_type, query_str)
+                if query_type == "domain":
+                    term = query_str.encode("idna").decode()
+                    res = rdap_stub.DomainSearch(rdap_pb2.DomainSearchRequest(
+                        name=term
+                    ))
+                    res2 = None
+                elif query_type == "entity":
+                    res = rdap_stub.EntitySearch(rdap_pb2.EntitySearchRequest(
+                        name=query_str
+                    ))
+                    res2 = rdap_stub.EntitySearch(rdap_pb2.EntitySearchRequest(
+                        handle=query_str
+                    ))
+                elif query_type == "name_server":
+                    term = query_str.encode("idna").decode()
+                    res = rdap_stub.NameServerSearch(rdap_pb2.NameServerSearchRequest(
+                        name=term
+                    ))
+                    res2 = None
                 else:
-                    if query_type == "domain":
-                        objects = map_domains(res.success.data)
-                    elif query_type == "entity":
-                        objects = map_entities(res.success.data)
-                        objects.extend(map_entities(res2.success.data))
-                    elif query_type == "name_server":
-                        objects = map_name_servers(res.success.data)
+                    res = None
+                    res2 = None
+            except grpc.RpcError as rpc_error:
+                error = rpc_error.details()
+            else:
+                if res:
+                    if res.WhichOneof("response") == "redirect":
+                        http_res = HttpResponse(status=302)
+                        http_res["Location"] = res.redirect.rdap_uri
+                        return http_res
+                    elif res.WhichOneof("response") == "error":
+                        error = mark_safe(f"{res.error.title}<br>{res.error.description}")
+                    else:
+                        if query_type == "domain":
+                            objects = map_domains(res.success.data)
+                        elif query_type == "entity":
+                            objects = map_entities(res.success.data)
+                            objects.extend(map_entities(res2.success.data))
+                        elif query_type == "name_server":
+                            objects = map_name_servers(res.success.data)
 
     return render(request, "whois/search.html", {
         "error": error,
@@ -446,6 +448,7 @@ def map_entity(entity: rdap_pb2.Entity) -> dict:
         "roles": map_roles(entity.roles),
         "publicIds": map_public_ids(entity.public_ids),
         "entities": map_entities(entity.entities),
+        "events": map_events(entity.events),
         "status": map_statuses(entity.statuses),
         "remarks": map_remarks(entity.remarks),
     }

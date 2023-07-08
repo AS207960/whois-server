@@ -10,8 +10,8 @@ service RDAP {
     rpc EntityLookup (LookupRequest) returns (EntityResponse);
     rpc NameServerLookup (LookupRequest) returns (NameServerResponse);
     rpc DomainSearch (DomainSearchRequest) returns (DomainSearchResponse);
-    rpc EntitySearch (DomainSearchRequest) returns (EntitySearchResponse);
-    rpc NameServerSearch (DomainSearchRequest) returns (NameServerSearchResponse);
+    rpc EntitySearch (EntitySearchRequest) returns (EntitySearchResponse);
+    rpc NameServerSearch (NameServerSearchRequest) returns (NameServerSearchResponse);
 }
 
 message LookupRequest {

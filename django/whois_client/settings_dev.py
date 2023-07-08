@@ -120,4 +120,4 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-WHOIS_ADDR = "172.30.0.13:50051"
+WHOIS_ADDR = "localhost:50051"

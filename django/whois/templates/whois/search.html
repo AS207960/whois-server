@@ -1,9 +1,9 @@
 {% extends 'whois/base.html' %}
 {% load static %}
 {% block content %}
-    <div class="my-5"></div>
+    <div class="py-5"></div>
     <section class="stripe">
-        <div class="container my-3">
+        <div class="container my-5">
             <div class="bg-light p-3 rounded my-4">
                 <h1 class="display-4">Search our WHOIS &#x1f50d;</h1>
                 <p>
@@ -43,6 +43,7 @@
             <p>
                 See <a href="{{ redirect }}">{{ redirect }}</a>
             </p>
+            <hr/>
         {% endif %}
         {% if objects != None %}
             <h2>Found {{ objects|length }} object(s)</h2>
@@ -55,6 +56,7 @@
                     {% include "whois/objects/name_server.html" with object=object only %}
                 {% endif %}
             {% endfor %}
+            <hr/>
         {% endif %}
         <h2>WHOIS by Post</h2>
         <p>

@@ -16,6 +16,7 @@
             </ul>
         {% endif %}
         {% include "whois/objects/status.html" with object=object only %}
+        {% include "whois/objects/events.html" with object=object only %}
         {% include "whois/objects/public_ids.html" with object=object only %}
         {% include "whois/objects/remarks.html" with object=object only %}
         {% include "whois/objects/jscard.html" with card=object.jscard only %}

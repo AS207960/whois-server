@@ -36,12 +36,12 @@ class RDAPStub(object):
                 )
         self.EntitySearch = channel.unary_unary(
                 '/rdap.RDAP/EntitySearch',
-                request_serializer=rdap__pb2.DomainSearchRequest.SerializeToString,
+                request_serializer=rdap__pb2.EntitySearchRequest.SerializeToString,
                 response_deserializer=rdap__pb2.EntitySearchResponse.FromString,
                 )
         self.NameServerSearch = channel.unary_unary(
                 '/rdap.RDAP/NameServerSearch',
-                request_serializer=rdap__pb2.DomainSearchRequest.SerializeToString,
+                request_serializer=rdap__pb2.NameServerSearchRequest.SerializeToString,
                 response_deserializer=rdap__pb2.NameServerSearchResponse.FromString,
                 )
 
@@ -110,12 +110,12 @@ def add_RDAPServicer_to_server(servicer, server):
             ),
             'EntitySearch': grpc.unary_unary_rpc_method_handler(
                     servicer.EntitySearch,
-                    request_deserializer=rdap__pb2.DomainSearchRequest.FromString,
+                    request_deserializer=rdap__pb2.EntitySearchRequest.FromString,
                     response_serializer=rdap__pb2.EntitySearchResponse.SerializeToString,
             ),
             'NameServerSearch': grpc.unary_unary_rpc_method_handler(
                     servicer.NameServerSearch,
-                    request_deserializer=rdap__pb2.DomainSearchRequest.FromString,
+                    request_deserializer=rdap__pb2.NameServerSearchRequest.FromString,
                     response_serializer=rdap__pb2.NameServerSearchResponse.SerializeToString,
             ),
     }
@@ -208,7 +208,7 @@ class RDAP(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/rdap.RDAP/EntitySearch',
-            rdap__pb2.DomainSearchRequest.SerializeToString,
+            rdap__pb2.EntitySearchRequest.SerializeToString,
             rdap__pb2.EntitySearchResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
@@ -225,7 +225,7 @@ class RDAP(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/rdap.RDAP/NameServerSearch',
-            rdap__pb2.DomainSearchRequest.SerializeToString,
+            rdap__pb2.NameServerSearchRequest.SerializeToString,
             rdap__pb2.NameServerSearchResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
