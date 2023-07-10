@@ -153,7 +153,7 @@
                 {% if link.kind == "contact" %}<span class="badge bg-primary">Contact</span>{% endif %}
             </p>
         {% endfor %}
-        {% for _note in card.notes.items %}
+        {% for _, note in card.notes.items %}
             <p>
                 <b>Note:</b> {{ note.note }}
                 {% if note.created %}
