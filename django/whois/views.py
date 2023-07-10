@@ -241,202 +241,791 @@ def map_js_card_to_jcard(card: rdap_pb2.JSCard):
         ["version", {}, "text", "4.0"],
         ["uid", {}, "text", card.uid],
     ]
-    if card.HasField("kind"):
-        elements.append(["kind", {}, "text", card.kind.value])
-    if card.HasField("full_name"):
-        elements.append(["fn", {}, "text", card.full_name.value])
-    if card.HasField("updated"):
-        elements.append(["rev", {}, "timestamp", card.updated.ToDatetime().isoformat()])
-    for online in card.online:
-        if online.HasField("type") and online.type.value == "uri":
-            if "photo" in online.labels:
-                elements.append(["photo", {}, "uri", online.value])
-            if "logo" in online.labels:
-                elements.append(["logo", {}, "uri", online.value])
+
+    if card.kind == rdap_pb2.JSCard.Individual:
+        elements.append(["kind", {}, "text", "individual"])
+    elif card.kind == rdap_pb2.JSCard.Group:
+        elements.append(["kind", {}, "text", "group"])
+    elif card.kind == rdap_pb2.JSCard.Org:
+        elements.append(["kind", {}, "text", "org"])
+    elif card.kind == rdap_pb2.JSCard.Location:
+        elements.append(["kind", {}, "text", "location"])
+    elif card.kind == rdap_pb2.JSCard.Application:
+        elements.append(["kind", {}, "text", "application"])
+    elif card.kind == rdap_pb2.JSCard.Device:
+        elements.append(["kind", {}, "text", "device"])
+
+    if card.HasField("product_id"):
+        elements.append(["prodid", {}, "text", card.product_id.value])
+
+    if card.HasField("name"):
+        if card.name.HasField("full_name"):
+            elements.append(["fn", {}, "text", card.name.full_name.value])
+
+        surname = list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Name.NameComponent.Surname,
+            card.name.components
+        )) + list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Name.NameComponent.Surname2,
+            card.name.components
+        ))
+        given = list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Name.NameComponent.Given,
+            card.name.components
+        ))
+        additional = list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Name.NameComponent.Middle,
+            card.name.components
+        ))
+        hon_pre = list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Name.NameComponent.Title,
+            card.name.components
+        ))
+        hon_suf = list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Name.NameComponent.Generation,
+            card.name.components
+        )) + list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Name.NameComponent.Credential,
+            card.name.components
+        ))
+
+        if surname or given or additional or hon_pre or hon_suf:
+            surname = ','.join([c.value for c in surname])
+            given = ','.join([c.value for c in given])
+            additional = ','.join([c.value for c in additional])
+            hon_pre = ','.join([c.value for c in hon_pre])
+            hon_suf = ','.join([c.value for c in hon_suf])
+            elements.append(["n", {}, "text", f"{surname};{given};{additional};{hon_pre};{hon_suf}"])
+
+    if len(card.nick_names):
+        nn = ','.join([n.name for n in card.nick_names])
+        elements.append(["nickname", {}, "text", nn])
+
+    for org in card.organisations.values():
+        units = ';'.join([org.name] + [u.name for u in org.units])
+        elements.append(["org", {}, "text", units])
+
+    for title in card.titles.values():
+        if title.kind == rdap_pb2.JSCard.Title.Role:
+            elements.append(["role", {}, "text", title.name])
+        else:
+            elements.append(["title", {}, "text", title.name])
+
+    for email in card.emails.values():
+        elements.append(["email", {}, "text", email.email])
+
+    for os in card.online_services.values():
+        if os.HasField("uri"):
+            elements.append(["url", {}, "uri", os.uri.value])
+
+    for phone in card.phones.values():
+        attr = {}
+        for f in phone.features:
+            if f == rdap_pb2.JSCard.Phone.Mobile:
+                t = "cell"
+            elif f == rdap_pb2.JSCard.Phone.Voice:
+                t = "voice"
+            elif f == rdap_pb2.JSCard.Phone.Text:
+                t = "text"
+            elif f == rdap_pb2.JSCard.Phone.Video:
+                t = "video"
+            elif f == rdap_pb2.JSCard.Phone.MainNumber:
+                continue
+            elif f == rdap_pb2.JSCard.Phone.Textphone:
+                t = "textphone"
+            elif f == rdap_pb2.JSCard.Phone.Fax:
+                t = "fax"
+            elif f == rdap_pb2.JSCard.Phone.Pager:
+                t = "pager"
             else:
-                elements.append(["uri", {}, "uri", online.value])
-    for anniversary in card.anniversaries:
-        if anniversary.type == "birth":
-            elements.append(["bday", {}, "date-time", anniversary.date.ToDatetime().isoformat()])
-        elif anniversary.type == "death":
-            elements.append(["deathday", {}, "date-time", anniversary.date.ToDatetime().isoformat()])
-    for address in card.addresses:
-        params = {}
-        if address.HasField("full_address"):
-            params["label"] = address.full_address.value
-        if address.HasField("preferred"):
-            params["pref"] = int(address.preferred.value)
-        if address.HasField("coordinates"):
-            params["geo"] = address.coordinates.value
-        if address.HasField("context"):
-            params["type"] = address.context.value
-        if address.HasField("country_code"):
-            params["cc"] = address.country_code.value
-        elements.append(["adr", params, "text", [
-            address.post_office_box.value if address.HasField("post_office_box") else "",
-            address.extension.value if address.HasField("extension") else "",
-            address.street.value.split("\n") if address.HasField("street") else "",
-            address.locality.value if address.HasField("locality") else "",
-            address.region.value if address.HasField("region") else "",
-            address.post_code.value if address.HasField("post_code") else "",
-            address.country.value if address.HasField("country") else ""
-        ]])
-    for phone in card.phones:
-        params = {}
-        if phone.HasField("type"):
-            params["type"] = phone.type.value
-        if phone.HasField("preferred"):
-            params["pref"] = int(phone.preferred.value)
-        elements.append(["tel", params, "uri", phone.value])
-    for email in card.emails:
-        params = {}
-        if email.HasField("type"):
-            params["type"] = email.type.value
-        if email.HasField("preferred"):
-            params["pref"] = int(email.preferred.value)
-        elements.append(["email", params, "text", email.value])
-    for item, value in dict(card.preferred_contact_languages).items():
-        for lang in value.languages:
-            params = {}
-            if lang.HasField("type"):
-                params["type"] = lang.type.value
-            if lang.HasField("preference"):
-                params["pref"] = lang.preference.value
-            elements.append(["lang", params, "language-tag", item])
-    for job_title in card.job_title:
-        elements.append(["title", {}, "text", job_title.value])
-    for role in card.role:
-        elements.append(["role", {}, "text", role.value])
-    for organisation in card.organisation:
-        elements.append(["org", {}, "text", organisation.value])
-    for personal_info in card.personal_info:
-        params = {}
-        if personal_info.HasField("level"):
-            if personal_info.level.info == "low":
-                params["level"] = "beginner"
-            elif personal_info.level.info == "medium":
-                params["level"] = "average"
-            elif personal_info.level.info == "high":
-                params["level"] = "expert"
-        elements.append([personal_info.type, params, "text", personal_info.value])
-    for note in card.notes:
-        elements.append(["note", {}, "text", note.value])
+                continue
+
+            if "type" in attr:
+                attr["type"].append(t)
+            else:
+                attr["type"] = [t]
+
+        elements.append(["tel", attr, "text", phone.number])
+
+    for lang in card.preferred_languages.keys():
+        elements.append(["lang", {}, "language-tag", lang])
+
+    for cal in card.calendars.values():
+        attr = {}
+        if cal.kind == rdap_pb2.JSCard.Calendar.Calendar:
+            t = "caluri"
+        elif cal.kind == rdap_pb2.JSCard.Calendar.FreeBusy:
+            t = "fburi"
+        else:
+            continue
+
+        if cal.resource.HasField("media_type"):
+            attr["mediatype"] = cal.resource.media_type.value
+
+        elements.append([t, attr, "uri", cal.resource.uri])
+
+    for sa in card.scheduling_addresses.values():
+        elements.append(["caladruri", {}, "uri", sa.uri])
+
+    for a in card.addresses.values():
+        attr = {}
+        if a.HasField("timezone"):
+            attr["tz"] = a.timezone.value
+        if a.HasField("coordinates"):
+            attr["geo"] = a.coordinates.value
+
+        post_office_box = list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Address.AddressComponent.PostOfficeBox,
+            a.components,
+        ))
+        extended_address = list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Address.AddressComponent.Room,
+            a.components,
+        )) + list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Address.AddressComponent.Apartment,
+            a.components,
+        )) + list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Address.AddressComponent.Floor,
+            a.components,
+        )) + list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Address.AddressComponent.Building,
+            a.components,
+        ))
+        street_address = list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Address.AddressComponent.Number,
+            a.components,
+        )) + list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Address.AddressComponent.Name,
+            a.components,
+        )) + list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Address.AddressComponent.Block,
+            a.components,
+        ))
+        locality = list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Address.AddressComponent.Locality,
+            a.components,
+        ))
+        region = list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Address.AddressComponent.Region,
+            a.components,
+        ))
+        postal_code = list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Address.AddressComponent.Postcode,
+            a.components,
+        ))
+        country = list(filter(
+            lambda c: c.kind == rdap_pb2.JSCard.Address.AddressComponent.Country,
+            a.components,
+        ))
+
+        post_office_box = ",".join([c.value for c in post_office_box])
+        extended_address = ",".join([c.value for c in extended_address])
+        street_address = ",".join([c.value for c in street_address])
+        locality = ",".join([c.value for c in locality])
+        region = ",".join([c.value for c in region])
+        postal_code = ",".join([c.value for c in postal_code])
+        country = ",".join([c.value for c in country])
+
+        elements.append(["adr", attr, "text", ";".join([
+            post_office_box, extended_address, street_address, locality,
+            region, postal_code, country
+        ])])
+
+    for k in card.crypto_keys.values():
+        attr = {}
+        if k.HasField("media_type"):
+            attr["mediatype"] = k.media_type.value
+        elements.append(["key", attr, "uri", k.uri])
+
+    for link in card.links.values():
+        attr = {}
+        if link.resource.HasField("media_type"):
+            attr["mediatype"] = link.resource.media_type.value
+        elements.append(["url", attr, "uri", link.resource.uri])
+
+    for media in card.media.values():
+        if media.kind == rdap_pb2.JSCard.Media.Logo:
+            t = "logo"
+        elif media.kind == rdap_pb2.JSCard.Media.Photo:
+            t = "photo"
+        elif media.kind == rdap_pb2.JSCard.Media.Sound:
+            t = "sound"
+        else:
+            continue
+
+        attr = {}
+        if media.resource.HasField("media_type"):
+            attr["mediatype"] = media.resource.media_type.value
+        elements.append([t, attr, "uri", media.resource.uri])
+
+    for note in card.notes.values():
+        elements.append(["note", {}, "text", note.note])
+
     return ["vcard", elements]
 
 
 def map_js_card(card: rdap_pb2.JSCard):
-    def map_localised_string(loc_string: rdap_pb2.JSCard.LocalisedString):
-        out = {
-            "value": loc_string.value,
-            "localizations": dict(loc_string.localisations)
+    def map_pronounce(pronounce: rdap_pb2.JSCard.Pronounce) -> dict:
+        obj = {
+            "@type": "Pronounce",
+            "phonetics": pronounce.phonetics,
         }
-        if loc_string.HasField("language"):
-            out["language"] = loc_string.language.value
-        return out
+        if pronounce.HasField("script"):
+            obj["script"] = pronounce.script.value
+        if pronounce.HasField("system"):
+            obj["system"] = pronounce.system.value
+        return obj
 
-    def map_resource(resource: rdap_pb2.JSCard.Resource):
-        out = {
-            "value": resource.value,
-            "labels": {}
+    def map_context(context: rdap_pb2.JSCard.Context) -> dict:
+        obj = {}
+
+        if context.private:
+            obj["private"] = True
+        if context.work:
+            obj["work"] = True
+        if context.billing:
+            obj["billing"] = True
+        if context.delivery:
+            obj["delivery"] = True
+
+        return obj
+
+    def map_name_component(component: rdap_pb2.JSCard.Name.NameComponent) -> dict:
+        if component.kind == rdap_pb2.JSCard.Name.NameComponent.Title:
+            k = "title"
+        elif component.kind == rdap_pb2.JSCard.Name.NameComponent.Given:
+            k = "given"
+        elif component.kind == rdap_pb2.JSCard.Name.NameComponent.Surname:
+            k = "surname"
+        elif component.kind == rdap_pb2.JSCard.Name.NameComponent.Surname2:
+            k = "surname2"
+        elif component.kind == rdap_pb2.JSCard.Name.NameComponent.Middle:
+            k = "middle"
+        elif component.kind == rdap_pb2.JSCard.Name.NameComponent.Credential:
+            k = "credential"
+        elif component.kind == rdap_pb2.JSCard.Name.NameComponent.Generation:
+            k = "generation"
+        elif component.kind == rdap_pb2.JSCard.Name.NameComponent.Separator:
+            k = "seperator"
+        else:
+            k = ""
+
+        obj = {
+            "@type": "NameComponent",
+            "value": component.value,
+            "kind": k,
         }
-        if resource.HasField("context"):
-            out["context"] = resource.context.value
-        if resource.HasField("type"):
-            out["type"] = resource.type.value
-        if resource.HasField("media_type"):
-            out["mediaType"] = resource.media_type.value
-        if resource.HasField("preferred"):
-            out["isPreferred"] = resource.preferred.value
-        for label in resource.labels:
-            out["labels"][label] = True
-        return out
+        if component.HasField("pronounce"):
+            obj["pronounce"] = map_pronounce(component.pronounce)
+        return obj
 
-    def map_address(address: rdap_pb2.JSCard.Address):
-        out = {}
-        if address.HasField("context"):
-            out["context"] = address.context.value
-        if address.HasField("label"):
-            out["label"] = address.label.value
-        if address.HasField("full_address"):
-            out["fullAddress"] = map_localised_string(address.full_address)
-        if address.HasField("street"):
-            out["street"] = address.street.value
-        if address.HasField("extension"):
-            out["extension"] = address.extension.value
-        if address.HasField("locality"):
-            out["locality"] = address.locality.value
-        if address.HasField("region"):
-            out["region"] = address.region.value
-        if address.HasField("country"):
-            out["country"] = address.country.value
-        if address.HasField("post_office_box"):
-            out["postOfficeBox"] = address.post_office_box.value
-        if address.HasField("post_code"):
-            out["postcode"] = address.post_code.value
-        if address.HasField("country_code"):
-            out["countryCode"] = address.country_code.value
-        if address.HasField("coordinates"):
-            out["coordinates"] = address.coordinates.value
-        if address.HasField("timezone"):
-            out["timeZone"] = address.timezone.value
-        if address.HasField("preferred"):
-            out["isPreferred"] = address.preferred.value
-        return out
-
-    def map_anniversary(anniversary: rdap_pb2.JSCard.Anniversary):
-        out = {
-            "type": anniversary.type,
+    def map_org_unit(unit: rdap_pb2.JSCard.Organisation.OrganisationUnit) -> dict:
+        obj = {
+            "@type": "OrgUnit",
+            "name": unit.name,
         }
-        if anniversary.HasField("label"):
-            out["label"] = anniversary.label.value
-        if anniversary.HasField("date"):
-            out["date"] = anniversary.date.ToDatetime().date().isoformat()
-        if anniversary.HasField("place"):
-            out["place"] = map_address(anniversary.place)
-        return out
+        if unit.HasField("sort_as"):
+            obj["sortAs"] = unit.sort_as.value
+        return obj
 
-    def map_personal_info(personal_info: rdap_pb2.JSCard.PersonalInfo):
-        out = {
-            "type": personal_info.type,
-            "value": personal_info.value
+    def map_language_pref(pref: rdap_pb2.JSCard.LanguagePreferences.LanguagePreference) -> dict:
+        obj = {
+            "@type": "LanguagePref"
         }
-        if personal_info.HasField("level"):
-            out["level"] = personal_info.level.value
-        return out
+        if v.HasField("context"):
+            obj["contexts"] = map_context(v.context)
+        if v.HasField("preference"):
+            obj["pref"] = v.preference.value
+        return obj
+
+    def map_resource(res: rdap_pb2.JSCard.Resource) -> dict:
+        obj = {
+            "uri": res.uri,
+        }
+        if res.HasField("media_type"):
+            obj["mediaType"] = res.media_type.value
+        if res.HasField("context"):
+            obj["contexts"] = map_context(res.context)
+        if res.HasField("preference"):
+            obj["pref"] = res.pref.value
+        if res.HasField("label"):
+            obj["label"] = res.label
+
+        return obj
+
+    def map_addr_component(component: rdap_pb2.JSCard.Address.AddressComponent) -> dict:
+        if component.kind == rdap_pb2.JSCard.Address.AddressComponent.Room:
+            k = "room"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.Apartment:
+            k = "apartment"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.Floor:
+            k = "floor"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.Building:
+            k = "building"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.Number:
+            k = "number"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.Name:
+            k = "name"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.Block:
+            k = "block"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.SubDistrict:
+            k = "subdistrict"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.District:
+            k = "district"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.Locality:
+            k = "locality"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.Region:
+            k = "region"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.Postcode:
+            k = "postcode"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.Country:
+            k = "country"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.Direction:
+            k = "direction"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.Landmark:
+            k = "landmark"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.PostOfficeBox:
+            k = "postofficebox"
+        elif component.kind == rdap_pb2.JSCard.Address.AddressComponent.Separator:
+            k = "separator"
+        else:
+            k = ""
+
+        obj = {
+            "@type": "AddressComponent",
+            "value": component.value,
+            "kind": k,
+        }
+        if component.HasField("pronounce"):
+            obj["pronounce"] = map_pronounce(component.pronounce)
+        return obj
+
+    def map_address(addr: rdap_pb2.JSCard.Address) -> dict:
+        obj = {
+            "@type": "Address",
+        }
+
+        if len(addr.components):
+            obj["components"] = list(map(map_addr_component, addr.components))
+        if addr.HasField("country_code"):
+            obj["countryCode"] = addr.country_code.value
+        if addr.HasField("coordinates"):
+            obj["coordinates"] = addr.coordinates.value
+        if addr.HasField("timezone"):
+            obj["timeZone"] = addr.timezone.value
+        if addr.HasField("full"):
+            obj["full"] = addr.full.value
+        if addr.HasField("pronounce"):
+            obj["pronounce"] = addr.pronounce.value
+        if addr.HasField("default_seperator"):
+            obj["defaultSeparator"] = addr.default_seperator.value
+        if addr.HasField("context"):
+            obj["contexts"] = map_context(addr.context)
+        if addr.HasField("preference"):
+            obj["pref"] = addr.preference.value
+
+        return obj
 
     card_dict = {
+        "@type": "Card",
+        "version": "1.0",
         "uid": card.uid,
-        "organization": list(map(map_localised_string, card.organisation)),
-        "jobTitle": list(map(map_localised_string, card.job_title)),
-        "role": list(map(map_localised_string, card.role)),
-        "emails": list(map(map_resource, card.emails)),
-        "phones": list(map(map_resource, card.phones)),
-        "online": list(map(map_resource, card.online)),
-        "preferredContactLanguages": {},
-        "addresses": list(map(map_address, card.addresses)),
-        "anniversaries": list(map(map_anniversary, card.anniversaries)),
-        "personalInfo": list(map(map_personal_info, card.personal_info)),
-        "notes": list(map(map_localised_string, card.notes)),
-        "categories": list(card.categories),
     }
+    if card.HasField("created"):
+        card_dict["created"] = card.created.ToDatetime().isoformat()
     if card.HasField("updated"):
-        card_dict["upated"] = card.updated.ToDatetime().isoformat()
-    if card.HasField("kind"):
-        card_dict["kind"] = card.kind.value
-    if card.HasField("full_name"):
-        card_dict["fullName"] = map_localised_string(card.full_name)
-    if card.HasField("preferred_contact_method"):
-        card_dict["preferredContactMethod"] = card.preferred_contact_method.value
-    for item, value in dict(card.preferred_contact_languages).items():
-        l_array = []
-        for language in value.languages:
-            l_dict = {}
-            if language.HasField("type"):
-                l_dict["type"] = language.type.value
-            if language.HasField("preference"):
-                l_dict["preference"] = language.preference.value
-            l_array.append(l_dict)
-        card_dict["preferredContactLanguages"]["item"] = l_array
+        card_dict["updated"] = card.updated.ToDatetime().isoformat()
+    if card.HasField("language"):
+        card_dict["language"] = card.language.value
+    if card.HasField("product_id"):
+        card_dict["prodId"] = card.product_id.value
+
+    if card.kind == rdap_pb2.JSCard.Individual:
+        card_dict["kind"] = "individual"
+    elif card.kind == rdap_pb2.JSCard.Group:
+        card_dict["kind"] = "group"
+    elif card.kind == rdap_pb2.JSCard.Org:
+        card_dict["kind"] = "org"
+    elif card.kind == rdap_pb2.JSCard.Location:
+        card_dict["kind"] = "location"
+    elif card.kind == rdap_pb2.JSCard.Device:
+        card_dict["kind"] = "device"
+    elif card.kind == rdap_pb2.JSCard.Application:
+        card_dict["kind"] = "application"
+
+    for member in list(card.members):
+        if "members" not in card_dict:
+            card_dict["members"] = {}
+
+        card_dict["members"][member] = True
+
+    if card.HasField("name"):
+        card_dict["name"] = {
+            "@type": "Name",
+        }
+
+        if card.name.components:
+            card_dict["name"]["components"] = [
+                map_name_component(c) for c in card.name.components
+            ]
+        if card.name.HasField("default_separator"):
+            card_dict["name"]["defaultSeparator"] = card.name.default_separator.value
+        if card.name.HasField("full_name"):
+            card_dict["name"]["full"] = card.name.full_name.value
+        if card.name.HasField("pronounce"):
+            card_dict["name"]["pronounce"] = map_pronounce(card.name.pronounce)
+
+    for k, v in card.nick_names.items():
+        if "nickNames" not in card_dict:
+            card_dict["nickNames"] = {}
+
+        card_dict["nickNames"][k] = {
+            "@type": "NickName",
+            "name": v.name,
+        }
+
+        if v.HasField("context"):
+            card_dict["nickNames"][k]["contexts"] = map_context(v.context)
+        if v.HasField("preference"):
+            card_dict["nickNames"][k]["pref"] = v.preference.value
+
+    for k, v in card.organisations.items():
+        if "organizations" not in card_dict:
+            card_dict["organizations"] = {}
+
+        card_dict["organizations"][k] = {
+            "@type": "Organization",
+        }
+
+        if v.HasField("name"):
+            card_dict["organizations"][k]["name"] = v.name.value
+        if v.HasField("units"):
+            card_dict["organizations"][k]["units"] = [map_org_unit(u) for u in v.units]
+        if v.HasField("sort_an"):
+            card_dict["organizations"][k]["sortAs"] = v.sort_an.value
+        if v.HasField("context"):
+            card_dict["organizations"][k]["contexts"] = map_context(v.context)
+
+    if card.HasField("speak_to_as"):
+        card_dict["speakToAs"] = {
+            "@type": "SpeakToAs",
+        }
+
+        if card.speak_to_as.grammatical_gender == rdap_pb2.JSCard.SpeakToAs.Animate:
+            card_dict["speakToAs"]["grammaticalGender"] = "animate"
+        elif card.speak_to_as.grammatical_gender == rdap_pb2.JSCard.SpeakToAs.Common:
+            card_dict["speakToAs"]["grammaticalGender"] = "common"
+        elif card.speak_to_as.grammatical_gender == rdap_pb2.JSCard.SpeakToAs.Feminine:
+            card_dict["speakToAs"]["grammaticalGender"] = "feminine"
+        elif card.speak_to_as.grammatical_gender == rdap_pb2.JSCard.SpeakToAs.Masculine:
+            card_dict["speakToAs"]["grammaticalGender"] = "masculine"
+        elif card.speak_to_as.grammatical_gender == rdap_pb2.JSCard.SpeakToAs.Neuter:
+            card_dict["speakToAs"]["grammaticalGender"] = "neuter"
+        elif card.speak_to_as.grammatical_gender == rdap_pb2.JSCard.SpeakToAs.Inanimate:
+            card_dict["speakToAs"]["grammaticalGender"] = "inanimate"
+
+        for k, v in card.speak_to_as.pronouns.items():
+            if "pronouns" not in card_dict["speakToAs"]:
+                card_dict["speakToAs"]["pronouns"] = {}
+
+            card_dict["speakToAs"]["pronouns"][k] = {
+                "@type": "Pronouns",
+                "pronouns": v.pronouns,
+            }
+
+            if v.HasField("context"):
+                card_dict["speakToAs"]["pronouns"][k]["contexts"] = map_context(v.context)
+            if v.HasField("preference"):
+                card_dict["speakToAs"]["pronouns"][k]["pref"] = v.preference.value
+
+    for k, v in card.titles.items():
+        if "titles" not in card_dict:
+            card_dict["titles"] = {}
+
+        if v.kind == rdap_pb2.JSCard.Title.Title:
+            t = "title"
+        elif v.kind == rdap_pb2.JSCard.Title.Role:
+            t = "role"
+
+        card_dict["titles"][k] = {
+            "@type": "Title",
+            "name": v.name,
+            "kind:": t,
+        }
+
+        if v.HasField("organisation"):
+            card_dict["titles"][k]["organization"] = v.organisation.value
+
+    for k, v in card.emails.items():
+        if "emails" not in card_dict:
+            card_dict["emails"] = {}
+
+        card_dict["emails"][k] = {
+            "@type": "Email",
+            "address": v.email,
+        }
+
+        if v.HasField("context"):
+            card_dict["emails"][k]["contexts"] = map_context(v.context)
+        if v.HasField("preference"):
+            card_dict["emails"][k]["pref"] = v.preference.value
+        if v.HasField("label"):
+            card_dict["emails"][k]["label"] = v.label.value
+
+    for k, v in card.online_services.items():
+        if "onlineServices" not in card_dict:
+            card_dict["onlineServices"] = {}
+
+        card_dict["onlineServices"][k] = {
+            "@type": "OnlineService",
+        }
+
+        if v.HasField("service"):
+            card_dict["onlineServices"][k]["service"] = v.service.value
+        if v.HasField("uri"):
+            card_dict["onlineServices"][k]["uri"] = v.uri.value
+        if v.HasField("user"):
+            card_dict["onlineServices"][k]["user"] = v.user.value
+        if v.HasField("context"):
+            card_dict["onlineServices"][k]["contexts"] = map_context(v.context)
+        if v.HasField("preference"):
+            card_dict["onlineServices"][k]["pref"] = v.preference.value
+        if v.HasField("label"):
+            card_dict["onlineServices"][k]["label"] = v.label.value
+
+    for k, v in card.phones.items():
+        if "phones" not in card_dict:
+            card_dict["phones"] = {}
+
+        features = {}
+
+        for f in v.features:
+            if f == rdap_pb2.JSCard.Phone.Mobile:
+                features["mobile"] = True
+            elif f == rdap_pb2.JSCard.Phone.Voice:
+                features["voice"] = True
+            elif f == rdap_pb2.JSCard.Phone.Text:
+                features["text"] = True
+            elif f == rdap_pb2.JSCard.Phone.Video:
+                features["video"] = True
+            elif f == rdap_pb2.JSCard.Phone.MainNumber:
+                features["main-number"] = True
+            elif f == rdap_pb2.JSCard.Phone.Textphone:
+                features["textphone"] = True
+            elif f == rdap_pb2.JSCard.Phone.Fax:
+                features["fax"] = True
+            elif f == rdap_pb2.JSCard.Phone.Pager:
+                features["pager"] = True
+
+        card_dict["phones"][k] = {
+            "@type": "Phone",
+            "number": v.number,
+            "features": features,
+        }
+
+        if v.HasField("context"):
+            card_dict["phones"][k]["contexts"] = map_context(v.context)
+        if v.HasField("preference"):
+            card_dict["phones"][k]["pref"] = v.preference.value
+        if v.HasField("label"):
+            card_dict["phones"][k]["label"] = v.label.value
+
+    for k, v in card.preferred_languages.items():
+        if "preferredLanguages" not in card_dict:
+            card_dict["preferredLanguages"] = {}
+
+        card_dict["preferredLanguages"][k] = list(map(map_language_pref, v.preferences))
+
+    for k, v in card.calendars.items():
+        if "calendars" not in card_dict:
+            card_dict["calendars"] = {}
+
+        if v.kind == rdap_pb2.JSCard.Calendar.Calendar:
+            t = "calendar"
+        elif v.kind == rdap_pb2.JSCard.Calendar.FreeBusy:
+            t = "freebusy"
+        else:
+            continue
+
+        card_dict["calendars"][k] = map_resource(v.resource)
+        card_dict["calendars"][k]["@type"] = "Calendar"
+        card_dict["calendars"][k]["kind"] = t
+
+    for k, v in card.scheduling_addresses.items():
+        if "schedulingAddresses" not in card_dict:
+            card_dict["schedulingAddresses"] = {}
+
+        card_dict["schedulingAddresses"][k] = {
+            "@type": "SchedulingAddress",
+            "uri": v.uri,
+        }
+
+        if v.HasField("context"):
+            card_dict["schedulingAddresses"][k]["contexts"] = map_context(v.context)
+        if v.HasField("preference"):
+            card_dict["schedulingAddresses"][k]["pref"] = v.preference.value
+        if v.HasField("label"):
+            card_dict["schedulingAddresses"][k]["label"] = v.label.value
+
+    for k, v in card.addresses.items():
+        if "addresses" not in card_dict:
+            card_dict["addresses"] = {}
+
+        card_dict["addresses"][k] = map_address(v)
+
+    for k, v in card.crypto_keys.items():
+        if "cryptoKeys" not in card_dict:
+            card_dict["cryptoKeys"] = {}
+
+        card_dict["cryptoKeys"][k] = map_resource(k)
+        card_dict["cryptoKeys"][k]["@type"] = "CryptoKey"
+
+    for k, v in card.directories.items():
+        if "directories" not in card_dict:
+            card_dict["directories"] = {}
+
+        if v.kind == rdap_pb2.JSCard.Directory.Directory:
+            t = "directory"
+        elif v.kind == rdap_pb2.JSCard.Directory.Entry:
+            t = "entry"
+        else:
+            continue
+
+        card_dict["directories"][k] = map_resource(k.resource)
+        card_dict["directories"][k]["@type"] = "Directory"
+        card_dict["directories"][k]["kind"] = t
+
+    for k, v in card.links.items():
+        if "links" not in card_dict:
+            card_dict["links"] = {}
+
+        if v.kind == rdap_pb2.JSCard.Link.Contact:
+            t = "contact"
+        else:
+            continue
+
+        card_dict["links"][k] = map_resource(k.resource)
+        card_dict["links"][k]["@type"] = "Link"
+        card_dict["links"][k]["kind"] = t
+
+    for k, v in card.media.items():
+        if "media" not in card_dict:
+            card_dict["media"] = {}
+
+        if v.kind == rdap_pb2.JSCard.Media.Photo:
+            t = "photo"
+        elif v.kind == rdap_pb2.JSCard.Media.Sound:
+            t = "sound"
+        elif v.kind == rdap_pb2.JSCard.Media.Logo:
+            t = "logo"
+        else:
+            continue
+
+        card_dict["media"][k] = map_resource(k.resource)
+        card_dict["media"][k]["@type"] = "Media"
+        card_dict["media"][k]["kind"] = t
+
+    for k, v in card.anniversaries.items():
+        if "anniversaries" not in card_dict:
+            card_dict["anniversaries"] = {}
+
+        if v.kind == rdap_pb2.JSCard.Anniversary.Birth:
+            t = "birth"
+        elif v.kind == rdap_pb2.JSCard.Anniversary.Death:
+            t = "death"
+        elif v.kind == rdap_pb2.JSCard.Anniversary.Wedding:
+            t = "wedding"
+        else:
+            continue
+
+        card_dict["anniversaries"][k] = {
+            "@type": "Anniversary",
+            "kind": t,
+        }
+
+        if v.WhichOneof("date") == "timestamp":
+            card_dict["anniversaries"][k]["date"] = {
+                "@type": "Timestamp",
+                "utc": v.timestamp.ToDatetime().isoformat()
+            }
+        elif v.WhichOneof("date") == "partial_date":
+            card_dict["anniversaries"][k]["date"] = {
+                "@type": "PartialDate",
+            }
+            if v.partial_date.HasField("year"):
+                card_dict["anniversaries"][k]["date"]["year"] = v.partial_date.year.value
+            if v.partial_date.HasField("month"):
+                card_dict["anniversaries"][k]["date"]["month"] = v.partial_date.month.value
+            if v.partial_date.HasField("day"):
+                card_dict["anniversaries"][k]["date"]["day"] = v.partial_date.day.value
+            if v.partial_date.HasField("calendar_scale"):
+                card_dict["anniversaries"][k]["date"]["calendarScale"] = v.partial_date.calendar_scale.value
+
+        if v.HasField("place"):
+            card_dict["anniversaries"][k]["place"] = map_address(v.address)
+
+    for k in card.keywords:
+        if "keywords" not in card_dict:
+            card_dict["keywords"] = {}
+
+        card_dict["keywords"][k] = True
+
+    for k, v in card.notes.items():
+        if "notes" not in card_dict:
+            card_dict["notes"] = {}
+
+        card_dict["notes"][k] = {
+            "@type": "Note",
+            "note": v.note,
+        }
+
+        if v.HasField("created"):
+            card_dict["notes"][k]["created"] = v.created.ToDatetime().isoformat()
+        if v.HasField("author"):
+            card_dict["notes"][k]["author"] = {
+                "@type": "Author",
+            }
+            if v.author.HasField("name"):
+                card_dict["notes"][k]["author"]["name"] = v.author.name.value
+            if v.author.HasField("uri"):
+                card_dict["notes"][k]["author"]["uri"] = v.author.uri.value
+
+    for k, v in card.personal_info.items():
+        if "personalInfo" not in card_dict:
+            card_dict["personalInfo"] = {}
+
+        if v.kind == rdap_pb2.JSCard.PersonalInfo.Expertise:
+            t = "expertise"
+        elif v.kind == rdap_pb2.JSCard.PersonalInfo.Hobby:
+            t = "hobby"
+        elif v.kind == rdap_pb2.JSCard.PersonalInfo.Interest:
+            t = "interest"
+        else:
+            continue
+
+        if v.level == rdap_pb2.JSCard.PersonalInfo.NotSet:
+            l = None
+        elif v.level == rdap_pb2.JSCard.PersonalInfo.Low:
+            l = "low"
+        elif v.level == rdap_pb2.JSCard.PersonalInfo.Medium:
+            l = "medium"
+        elif v.level == rdap_pb2.JSCard.PersonalInfo.High:
+            l = "high"
+        else:
+            continue
+
+        card_dict["personalInfo"][k] = {
+            "@type": "PersonalInfo",
+            "kind": t,
+            "value": v.value,
+        }
+
+        if l:
+            card_dict["personalInfo"][k]["level"] = l
+        if v.HasField("list_as"):
+            card_dict["personalInfo"][k]["listAs"] = v.list_as.value
+        if v.HasField("label"):
+            card_dict["personalInfo"][k]["label"] = v.label.value
 
     return card_dict
 

@@ -25,7 +25,7 @@ SECRET_KEY = 'jp%h65=+g5@b$nlr0nx0qk733pck^(hjofw$oer0z+t386ubu$'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "45.129.95.4"]
+ALLOWED_HOSTS = ["localhost", "rdap.eu.ngrok.io"]
 
 
 # Application definition

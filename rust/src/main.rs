@@ -147,19 +147,20 @@ fn remark_to_whois(remark: &rdap::Remark, prefix: &str) -> Vec<String> {
 
 fn js_card_to_whois(card: &rdap::JsCard) -> Vec<String> {
     let mut out = vec![];
-    if let Some(kind) = &card.kind {
-        if kind == "individual" {
-            out.push("Kind: Individual".to_string());
-        } else if kind == "org" {
-            out.push("Kind: Organisation".to_string());
-        } else if kind == "location" {
-            out.push("Kind: Location".to_string());
-        } else if kind == "device" {
-            out.push("Kind: Device".to_string());
-        } else if kind == "application" {
-            out.push("Kind: Application".to_string());
-        } else {
-            out.push(format!("Kind: {}", kind));
+    if let Some(kind) = rdap::js_card::Kind::from_i32(card.kind) {
+        let kind = match kind {
+            rdap::js_card::Kind::Individual => "Individual",
+            rdap::js_card::Kind::Org => "Organisation",
+            rdap::js_card::Kind::Location => "Location",
+            rdap::js_card::Kind::Device => "Device",
+            rdap::js_card::Kind::Application => "Application",
+            _ => "Other",
+        };
+        out.push(format!("Kind: {}", kind));
+    }
+    if let Some(created) = &card.created {
+        if let Some(date) = proto_to_chrono(&created) {
+            out.push(format!("Created: {}", date.to_rfc3339()));
         }
     }
     if let Some(updated) = &card.updated {
@@ -167,158 +168,171 @@ fn js_card_to_whois(card: &rdap::JsCard) -> Vec<String> {
             out.push(format!("Last Updated: {}", date.to_rfc3339()));
         }
     }
-    if let Some(full_name) = &card.full_name {
-        out.push(format!("Name: {}", full_name.value));
-    }
-    for org in &card.organisation {
-        out.push(format!("Organisation: {}", org.value));
-    }
-    for job_title in &card.job_title {
-        out.push(format!("Job Title: {}", job_title.value));
-    }
-    for role in &card.role {
-        out.push(format!("Role: {}", role.value));
-    }
-    for email in &card.emails {
-        let mut name = "Email".to_string();
-        for label in &email.labels {
-            name += &format!(", {}", label);
-        }
-        if let Some(preferred) = &email.preferred {
-            if *preferred {
-                name += ", preferred";
-            }
-        }
-        out.push(format!("{}: {}", name, email.value));
-    }
-    for phone in &card.phones {
-        let mut name = (if let Some(phone_type) = &phone.r#type {
-            if phone_type == "voice" {
-                "Voice Phone"
-            } else if phone_type == "fax" {
-                "Fax"
-            } else if phone_type == "pager" {
-                "Pager"
-            } else {
-                "Other Phone"
-            }
+    if let Some(name) = &card.name {
+        let name = if name.components.is_empty() {
+            name.full_name.clone()
         } else {
-            "Phone"
-        }).to_string();
-        for label in &phone.labels {
-            name += &format!(", {}", label);
-        }
-        if let Some(preferred) = phone.preferred {
-            if preferred {
-                name += ", preferred";
-            }
-        }
-        out.push(format!("{}: {}", name, phone.value));
-    }
-    for online in &card.online {
-        let mut name = (if let Some(online_type) = &online.r#type {
-            if online_type == "uri" {
-                "Website"
-            } else if online_type == "fax" {
-                "Username"
-            } else {
-                "Online Presence"
-            }
-        } else {
-            "Online Presence"
-        }).to_string();
-        for label in &online.labels {
-            name += &format!(", {}", label);
-        }
-        if let Some(preferred) = &online.preferred {
-            if *preferred {
-                name += ", preferred";
-            }
-        }
-        out.push(format!("{}: {}", name, online.value));
-    }
-    if let Some(preferred_contact) = &card.preferred_contact_method {
-        let value = if preferred_contact == "emails" {
-            "Email"
-        } else if preferred_contact == "phones" {
-            "Phone"
-        } else if preferred_contact == "online" {
-            "Online"
-        } else {
-            "Other"
-        };
-        out.push(format!("Preferred Contact Method: {}", value));
-    }
-    for address in &card.addresses {
-        let mut value = (if let Some(context) = &address.context {
-            if context == "private" {
-                "Home Address"
-            } else if context == "work" {
-                "Work Address"
-            } else if context == "billing" {
-                "Billing Address"
-            } else if context == "postal" {
-                "Postal Address"
-            } else {
-                "Other Address"
-            }
-        } else {
-            "Address"
-        }).to_string();
-        if let Some(label) = &address.label {
-            value += &format!(", {}", label)
-        }
-        if let Some(preferred) = &address.preferred {
-            if *preferred {
-                value += ", preferred";
-            }
-        }
-        if let Some(extension) = &address.extension {
-            out.push(format!("{} Apartment: {}", value, extension))
-        }
-        if let Some(street) = &address.street {
-            for line in street.split("\n") {
-                out.push(format!("{} Street: {}", value, line))
-            }
-        }
-        if let Some(locality) = &address.locality {
-            out.push(format!("{} City: {}", value, locality))
-        }
-        if let Some(region) = &address.region {
-            out.push(format!("{} Province: {}", value, region))
-        }
-        if let Some(post_code) = &address.post_code {
-            out.push(format!("{} Post Code: {}", value, post_code))
-        }
-        if let Some(country) = &address.country {
-            out.push(format!("{} Country: {}", value, country))
-        }
-        if let Some(post_office_box) = &address.post_office_box {
-            out.push(format!("{} Post Office Box: {}", value, post_office_box))
-        }
-        if let Some(country_code) = &address.country_code {
-            out.push(format!("{} Country Code: {}", value, country_code))
-        }
-    }
-    for anniversary in &card.anniversaries {
-        if let Some(date) = &anniversary.date {
-            if let Some(date) = proto_to_chrono(&date) {
-                let mut value = (if anniversary.r#type == "birth" {
-                    "Birtday"
-                } else if anniversary.r#type == "death" {
-                    "Death"
+            let mut out = String::new();
+            let mut seen_separator = true;
+            for component in &name.components {
+                if seen_separator {
+                    seen_separator = false;
                 } else {
-                    "Other Anniversary"
-                }).to_string();
-                if let Some(label) = &anniversary.label {
-                    value += &format!(", {}", label)
+                    out += name.default_separator.as_deref().unwrap_or(" ");
                 }
-                out.push(format!("{}: {}", value, date.date_naive().format("%F")))
+                out += &component.value;
+                if rdap::js_card::name::name_component::Kind::from_i32(component.kind)
+                    == Some(rdap::js_card::name::name_component::Kind::Separator) {
+                    seen_separator = true;
+                }
             }
+            Some(out)
+        };
+        if let Some(name) = name {
+            out.push(format!("Name: {}", name));
         }
     }
-    for note in &card.notes {
-        for line in note.value.split("\n") {
+    for (_, nick_name) in &card.nick_names {
+        out.push(format!("Nick Name: {}", nick_name.name));
+    }
+    for (_, org) in &card.organisations {
+        if let Some(n) = &org.name {
+            out.push(format!("Organisation: {}", n));
+        }
+        for u in &org.units {
+            out.push(format!("Organisation Unit: {}", u.name));
+        }
+    }
+    for (_, title) in &card.titles {
+        match rdap::js_card::title::Kind::from_i32(title.kind) {
+            Some(rdap::js_card::title::Kind::Title) => {
+                out.push(format!("Title: {}", title.name));
+            }
+            Some(rdap::js_card::title::Kind::Role) => {
+                out.push(format!("Role: {}", title.name));
+            }
+            _ => {}
+        }
+    }
+    for (_, email) in &card.emails {
+        let mut name = "Email".to_string();
+        if let Some(label) = &email.label {
+            name += &format!(", {}", label);
+        }
+        out.push(format!("{}: {}", name, email.email));
+    }
+    for (_, os) in &card.online_services {
+        let mut name = if let Some(s) = &os.service {
+            format!("{}", s)
+        } else {
+            "Online Service".to_string()
+        };
+        if let Some(label) = &os.label {
+            name += &format!(", {}", label);
+        }
+        name += ": ";
+        if let Some(uri) = &os.uri {
+            name += uri
+        }
+        if let Some(user) = &os.user {
+            name += &format!(" ({})", user);
+        }
+        out.push(name);
+    }
+    for (_, phone) in &card.phones {
+        let mut name = "Phone".to_string();
+        for f in &phone.features {
+            match rdap::js_card::phone::Feature::from_i32(*f) {
+                Some(rdap::js_card::phone::Feature::Mobile) => {
+                    name += ", mobile";
+                }
+                Some(rdap::js_card::phone::Feature::Voice) => {
+                    name += ", voice";
+                }
+                Some(rdap::js_card::phone::Feature::Text) => {
+                    name += ", text";
+                }
+                Some(rdap::js_card::phone::Feature::Video) => {
+                    name += ", video";
+                }
+                Some(rdap::js_card::phone::Feature::MainNumber) => {
+                    name += ", main number";
+                }
+                Some(rdap::js_card::phone::Feature::Textphone) => {
+                    name += ", textphone";
+                }
+                Some(rdap::js_card::phone::Feature::Fax) => {
+                    name += ", fax";
+                }
+                Some(rdap::js_card::phone::Feature::Pager) => {
+                    name += ", pager";
+                }
+                _ => {}
+            }
+        }
+        if let Some(label) = &phone.label {
+            name += &format!(" ({})", label);
+        }
+        out.push(format!("{}: {}", name, phone.number));
+    }
+    for (_, address) in &card.addresses {
+        let mut name = "Address".to_string();
+        if let Some(context) = &address.context {
+            if context.private {
+                name += ", home";
+            }
+            if context.work {
+                name += ", work";
+            }
+            if context.billing {
+                name += ", billing";
+            }
+            if context.delivery {
+                name += ", postal";
+            }
+        }
+        let addr = if address.components.is_empty() {
+            address.full.clone()
+        } else {
+            let mut out = String::new();
+            let mut seen_separator = true;
+            for component in &address.components {
+                if seen_separator {
+                    seen_separator = false;
+                } else {
+                    out += address.default_seperator.as_deref().unwrap_or(" ");
+                }
+                out += &component.value;
+                if rdap::js_card::address::address_component::Kind::from_i32(component.kind)
+                    == Some(rdap::js_card::address::address_component::Kind::Separator) {
+                    seen_separator = true;
+                }
+            }
+            Some(out)
+        };
+        if let Some(addr) = addr {
+            for line in addr.split("\n") {
+                out.push(format!("{}: {}", name, line));
+            }
+        }
+        if let Some(timezone) = &address.timezone {
+            out.push(format!("Timezone: {}", timezone));
+        }
+        if let Some(coord) = &address.coordinates {
+            out.push(format!("Coordinates: {}", coord));
+        }
+    }
+    for (_, link) in &card.links {
+        let name = match rdap::js_card::link::Kind::from_i32(link.kind) {
+            Some(rdap::js_card::link::Kind::Contact) => "Contact link",
+            _ => "Link"
+        };
+        if let Some(res) = &link.resource {
+            out.push(format!("{}: {}", name, res.uri));
+        }
+    }
+    for (_, note) in &card.notes {
+        for line in note.note.split("\n") {
             out.push(format!("Note: {}", line))
         }
     }

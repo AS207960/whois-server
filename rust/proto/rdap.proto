@@ -194,77 +194,322 @@ message Remark {
 }
 
 message JSCard {
-    message LocalisedString {
-        string value = 1;
-        google.protobuf.StringValue language = 2;
-        map<string, string> localisations = 3;
-    }
-
     message Resource {
-        google.protobuf.StringValue context = 1;
-        google.protobuf.StringValue type = 2;
-        string value = 3;
-        google.protobuf.StringValue media_type = 4;
-        google.protobuf.BoolValue preferred = 5;
-        repeated string labels = 6;
+        string uri = 1;
+        google.protobuf.StringValue media_type = 2;
+        Context context = 3;
+        google.protobuf.UInt32Value preference = 4;
+        google.protobuf.StringValue label = 5;
     }
 
-    message ContactLanguages {
-        message ContactLanguage {
-            google.protobuf.StringValue type = 1;
-            google.protobuf.Int32Value preference = 2;
+    enum Kind {
+        NotSet = 0;
+        Individual = 1;
+        Group = 2;
+        Org = 3;
+        Location = 4;
+        Device = 5;
+        Application = 6;
+    }
+
+    message Pronounce {
+        string phonetics = 1;
+        google.protobuf.StringValue script = 2;
+        google.protobuf.StringValue system = 3;
+    }
+
+    message Context {
+        bool private = 1;
+        bool work = 2;
+        bool billing = 3;
+        bool delivery = 4;
+    }
+
+    message Name {
+        message NameComponent {
+            enum Kind {
+                Given = 0;
+                Middle = 1;
+                Surname = 2;
+                Surname2 = 3;
+                Title = 4;
+                Credential = 5;
+                Generation = 6;
+                Separator = 7;
+            }
+
+            string value = 1;
+            Kind kind = 2;
+            Pronounce pronounce = 3;
         }
 
-        repeated ContactLanguage languages = 1;
+        repeated NameComponent components = 1;
+        google.protobuf.StringValue default_separator = 2;
+        google.protobuf.StringValue full_name = 3;
+        Pronounce pronounce = 4;
+    }
+
+    message NickName {
+        string name = 1;
+        Context context = 2;
+        google.protobuf.UInt32Value preference = 3;
+    }
+
+    message Organisation {
+        message OrganisationUnit {
+            string name = 1;
+            google.protobuf.StringValue sort_as = 2;
+        }
+
+        google.protobuf.StringValue name = 1;
+        repeated OrganisationUnit units = 2;
+        google.protobuf.StringValue sort_as = 3;
+        Context context = 4;
+    }
+
+    message SpeakToAs {
+        enum GrammaticalGender {
+            NotSet = 0;
+            Common = 1;
+            Animate = 2;
+            Inanimate = 3;
+            Feminine = 4;
+            Masculine = 5;
+            Neuter = 6;
+        }
+
+        message Pronouns {
+            string pronouns = 1;
+            Context context = 2;
+            google.protobuf.UInt32Value preference = 3;
+        }
+
+        GrammaticalGender grammatical_gender = 1;
+        map<string, Pronouns> pronouns = 2;
+    }
+
+    message Title {
+        enum Kind {
+            Title = 0;
+            Role = 1;
+        }
+
+        string name = 1;
+        Kind kind = 2;
+        google.protobuf.StringValue organization = 3;
+    }
+
+    message Email {
+        string email = 1;
+        Context context = 2;
+        google.protobuf.UInt32Value preference = 3;
+        google.protobuf.StringValue label = 4;
+    }
+
+    message OnlineService {
+        google.protobuf.StringValue service = 1;
+        google.protobuf.StringValue uri = 2;
+        google.protobuf.StringValue user = 3;
+        Context context = 4;
+        google.protobuf.UInt32Value preference = 5;
+        google.protobuf.StringValue label = 6;
+    }
+
+    message Phone {
+        enum Feature {
+            Mobile = 0;
+            Voice = 1;
+            Text = 2;
+            Video = 3;
+            MainNumber = 4;
+            Textphone = 5;
+            Fax = 6;
+            Pager = 7;
+        }
+
+        string number = 1;
+        repeated Feature features = 2;
+        Context context = 3;
+        google.protobuf.UInt32Value preference = 4;
+        google.protobuf.StringValue label = 5;
+    }
+
+    message LanguagePreferences {
+        message LanguagePreference {
+            Context context = 1;
+            google.protobuf.UInt32Value preference = 2;
+        }
+
+        repeated LanguagePreference preferences = 1;
+    }
+
+    message Calendar {
+        enum Kind {
+            Calendar = 0;
+            FreeBusy = 1;
+        }
+
+        Resource resource = 1;
+        Kind kind = 2;
+    }
+
+    message SchedulingAddress {
+        string uri = 1;
+        Context context = 2;
+        google.protobuf.UInt32Value preference = 3;
+        google.protobuf.StringValue label = 4;
     }
 
     message Address {
-        google.protobuf.StringValue context = 1;
-        google.protobuf.StringValue label = 2;
-        LocalisedString full_address = 3;
-        google.protobuf.StringValue street = 4;
-        google.protobuf.StringValue extension = 5;
-        google.protobuf.StringValue locality = 6;
-        google.protobuf.StringValue region = 7;
-        google.protobuf.StringValue country = 8;
-        google.protobuf.StringValue post_office_box = 9;
-        google.protobuf.StringValue post_code = 10;
-        google.protobuf.StringValue country_code = 11;
-        google.protobuf.StringValue coordinates = 12;
-        google.protobuf.StringValue timezone = 13;
-        google.protobuf.BoolValue preferred = 14;
+        message AddressComponent {
+            enum Kind {
+                Room = 0;
+                Apartment = 1;
+                Floor = 2;
+                Building = 3;
+                Number = 4;
+                Name = 5;
+                Block = 6;
+                SubDistrict = 7;
+                District = 8;
+                Locality = 9;
+                Region = 10;
+                Postcode = 11;
+                Country = 12;
+                Direction = 13;
+                Landmark = 14;
+                PostOfficeBox = 15;
+                Separator = 16;
+            }
+
+            string value = 1;
+            Kind kind = 2;
+            Pronounce pronounce = 3;
+        }
+
+        repeated AddressComponent components = 1;
+        google.protobuf.StringValue country_code = 2;
+        google.protobuf.StringValue coordinates = 3;
+        google.protobuf.StringValue timezone = 4;
+        Context context = 5;
+        google.protobuf.StringValue full = 6;
+        Pronounce pronounce = 7;
+        google.protobuf.StringValue default_seperator = 8;
+        google.protobuf.UInt32Value preference = 9;
+    }
+
+    message Directory {
+        enum Kind {
+            Directory = 0;
+            Entry = 1;
+        }
+
+        Resource resource = 1;
+        Kind kind = 2;
+        google.protobuf.UInt32Value list_as = 3;
+    }
+
+    message Link {
+        enum Kind {
+            Contact = 0;
+        }
+
+        Resource resource = 1;
+        Kind kind = 2;
+    }
+
+    message Media {
+        enum Kind {
+            Photo = 0;
+            Sound = 1;
+            Logo = 2;
+        }
+
+        Resource resource = 1;
+        Kind kind = 2;
     }
 
     message Anniversary {
-        string type = 1;
-        google.protobuf.StringValue label = 2;
-        google.protobuf.Timestamp date = 3;
+        enum Kind {
+            Birth = 0;
+            Death = 1;
+            Wedding = 2;
+        }
+
+        message PartialDate {
+            google.protobuf.UInt32Value year = 1;
+            google.protobuf.UInt32Value month = 2;
+            google.protobuf.UInt32Value day = 3;
+            google.protobuf.StringValue calendar_scale = 4;
+        }
+
+        Kind kind = 1;
+        oneof date {
+            google.protobuf.Timestamp timestamp = 2;
+            PartialDate partial_date = 3;
+        }
         Address place = 4;
     }
 
+    message Note {
+        message Author {
+            google.protobuf.StringValue name = 1;
+            google.protobuf.StringValue uri = 2;
+        }
+
+        string note = 1;
+        google.protobuf.Timestamp created = 2;
+        Author author = 3;
+    }
+
     message PersonalInfo {
-        string type = 1;
+        enum Kind {
+            Expertise = 0;
+            Hobby = 1;
+            Interest = 2;
+        }
+
+        enum Level {
+            NotSet = 0;
+            High = 1;
+            Medium = 2;
+            Low = 3;
+        }
+
+        Kind kind = 1;
         string value = 2;
-        google.protobuf.StringValue level = 3;
+        Level level = 3;
+        google.protobuf.UInt32Value list_as = 4;
+        google.protobuf.StringValue label = 5;
     }
 
     string uid = 1;
-    google.protobuf.Timestamp updated = 2;
-    google.protobuf.StringValue kind = 3;
-    LocalisedString full_name = 4;
-    repeated LocalisedString organisation = 5;
-    repeated LocalisedString job_title = 6;
-    repeated LocalisedString role = 7;
-    repeated Resource emails = 8;
-    repeated Resource phones = 9;
-    repeated Resource online = 10;
-    google.protobuf.StringValue preferred_contact_method = 11;
-    map<string, ContactLanguages> preferred_contact_languages = 12;
-    repeated Address addresses = 13;
-    repeated Anniversary anniversaries = 14;
-    repeated PersonalInfo personal_info = 15;
-    repeated LocalisedString notes = 16;
-    repeated string categories = 17;
+    google.protobuf.Timestamp created = 2;
+    google.protobuf.Timestamp updated = 3;
+    Kind kind = 4;
+    google.protobuf.StringValue language = 5;
+    repeated string members = 6;
+    google.protobuf.StringValue product_id = 7;
+    Name name = 8;
+    map<string, NickName> nick_names = 9;
+    map<string, Organisation> organisations = 10;
+    SpeakToAs speak_to_as = 11;
+    map<string, Title> titles = 12;
+    map<string, Email> emails = 13;
+    map<string, OnlineService> online_services = 14;
+    map<string, Phone> phones = 15;
+    map<string, LanguagePreferences> preferred_languages = 16;
+    map<string, Calendar> calendars = 17;
+    map<string, SchedulingAddress> scheduling_addresses = 18;
+    map<string, Address> addresses = 19;
+    map<string, Resource> crypto_keys = 20;
+    map<string, Directory> directories = 21;
+    map<string, Link> links = 22;
+    map<string, Media> media = 23;
+    map<string, Anniversary> anniversaries = 24;
+    repeated string keywords = 25;
+    map<string, Note> notes = 26;
+    map<string, PersonalInfo> personal_info = 27;
 }
 
 message Entity {

@@ -7,9 +7,14 @@
         <p>
             <b>UID:</b> {{ card.uid }}
         </p>
-        {% if card.update %}
+        {% if card.created %}
             <p>
-                <b>Last updated:</b> {{ card.updates }}
+                <b>Created:</b> {{ card.created }}
+            </p>
+        {% endif %}
+        {% if card.updated %}
+            <p>
+                <b>Last updated:</b> {{ card.updated }}
             </p>
         {% endif %}
         {% if card.kind %}
@@ -25,158 +30,145 @@
                     Application
                 {% elif card.kind == "individual" %}
                     Individual
+                {% elif card.kind == "group" %}
+                    Group
                 {% else %}
                     {{ card.kind }}
                 {% endif %}
             </p>
         {% endif %}
-        {% if card.fullName %}
+        {% if card.language %}
             <p>
-                <b>Name:</b> {{ card.fullName.value }}
+                <b>Language:</b> {{ card.language }}
             </p>
         {% endif %}
-        {% for organisation in card.organization %}
+        {% if card.name %}
             <p>
-                <b>Organisation:</b> {{ organisation.value }}
-            </p>
-        {% endfor %}
-        {% for job_title in card.jobTitle %}
-            <p>
-                <b>Job Title:</b> {{ job_title.value }}
-            </p>
-        {% endfor %}
-        {% for role in card.role %}
-            <p>
-                <b>Role:</b> {{ role.value }}
-            </p>
-        {% endfor %}
-        {% for email in card.emails %}
-            <p>
-                <b>Email: </b> <a href="mailto:{{ email.value }}">{{ email.value }}</a>
-                {% if email.isPreferred %}<br/>Preferred{% endif %}
-            </p>
-        {% endfor %}
-        {% for phone in card.phones %}
-            <p>
-                {% if phone.type == "voice" %}
-                    <b>Voice Phone:</b>
-                {% elif phone.type == "fax" %}
-                    <b>Fax:</b>
-                {% elif phone.type == "pager" %}
-                    <b>Pager:</b>
-                {% elif phone.type == "other" %}
-                    <b>Other phone:</b>
-                {% endif %}
-                <a href="{{ phone.value }}">{{ phone.value }}</a>
-                {% if phone.isPreferred %}<br/>Preferred{% endif %}
-            </p>
-        {% endfor %}
-        {% for online in card.online %}
-            <p>
-                {% if online.type == "uri" %}
-                    <b>URI:</b> <a href="{{ online.value }}">{{ online.value }}</a>
-                {% elif online.type == "username" %}
-                    <b>Username:</b> {{ online.value }}
-                {% elif online.type == "other" %}
-                    <b>Other online presence:</b> {{ online.value }}
-                {% endif %}
-                {% if online.isPreferred %}<br/>Preferred{% endif %}
-            </p>
-        {% endfor %}
-        {% if card.preferredContactMethod %}
-            <p>
-                <b>Preferred Contact Method:</b>
-                {% if card.preferredContactMethod == "emails" %}
-                    Email
-                {% elif card.preferredContactMethod == "phones" %}
-                    Phone
-                {% elif card.preferredContactMethod == "online" %}
-                    Online
-                {% elif card.preferredContactMethod == "other" %}
-                    Other
-                {% endif %}
+                <b>Name:</b> {{ card.name.full }}
             </p>
         {% endif %}
-        {% for address in card.addresses %}
+        {% for k, v in card.nickNames.items %}
+            <p>
+                <b>Nickname:</b> {{ v.name }}
+            </p>
+        {% endfor %}
+        {% for _, organisation in card.organizations.items %}
+            <p>
+                <b>Organisation:</b> {{ organisation.name }}
+                {% for unit in organisation.units %}
+                    <br/>
+                    <b>Unit:</b> {{ unit.name }}
+                {% endfor %}
+            </p>
+        {% endfor %}
+        {% for _, titles in card.titles.items %}
+            <p>
+                {% if title.kind == "title" %}
+                    <b>Job Title:</b>
+                {% elif title.kind == "role" %}
+                    <b>Role: </b>
+                {% endif %}
+                {{ title.name }}
+            </p>
+        {% endfor %}
+        {% for _, email in card.emails.items %}
+            <p>
+                <b>Email: </b> <a href="mailto:{{ email.address }}">{{ email.address }}</a>
+                {% if email.label %}({{ email.label }}){% endif %}
+            </p>
+        {% endfor %}
+        {% for _, os in card.onlineServices.items %}
+            <p>
+                {% if os.service %}
+                    <b>{{ os.service }}:</b>
+                {% else %}
+                    <b>Online Service:</b>
+                {% endif %}
+
+                {% if os.uri %}
+                    <a href="{{ os.uri }}">
+                        {% if os.user %}{{ os.user }}{% else %}{{ os.uri }}{% endif %}
+                    </a>
+                {% else %}
+                    {{ os.user }}
+                {% endif %}
+
+                {% if os.label %}({{ os.label }}){% endif %}
+            </p>
+        {% endfor %}
+        {% for _, phone in card.phones.items %}
+            <p>
+                <b>Phone:</b>
+                <a href="{{ phone.number }}">{{ phone.number }}</a>
+                {% if phone.features.mobile %}
+                    <span class="badge bg-primary">Mobile</span>
+                {% endif %}
+                {% if phone.features.voice %}
+                    <span class="badge bg-primary">Voice</span>
+                {% endif %}
+                {% if phone.features.text %}
+                    <span class="badge bg-primary">Text</span>
+                {% endif %}
+                {% if phone.features.video %}
+                    <span class="badge bg-primary">Video</span>
+                {% endif %}
+                {% if phone.features.textphone %}
+                    <span class="badge bg-primary">Textphone</span>
+                {% endif %}
+                {% if phone.features.fax %}
+                    <span class="badge bg-primary">Fax</span>
+                {% endif %}
+                {% if phone.features.pager %}
+                    <span class="badge bg-primary">Pager</span>
+                {% endif %}
+                {% if phone.label %}<br/>({{ phone.label }}){% endif %}
+            </p>
+        {% endfor %}
+        {% for _, address in card.addresses.items %}
             <p>
                 <b>
                     Address
-                    {% if address.label %}({{ address.label }}}{% endif %}
+                    {% if address.contexts.billing %}<span class="badge bg-primary">Billing</span>{% endif %}
+                    {% if address.contexts.delivery %}<span class="badge bg-primary">Delivery</span>{% endif %}
                 </b>
-                {% if address.street %}
-                    <br>
-                    Street Address: {{ address.street|linebreaksbr }}
-                {% endif %}
-                {% if address.extension %}
-                    <br>
-                    Street Address Extension: {{ address.extension }}
-                {% endif %}
-                {% if address.locality %}
-                    <br>
-                    Locality: {{ address.locality }}
-                {% endif %}
-                {% if address.region %}
-                    <br>
-                    Region: {{ address.region }}
-                {% endif %}
-                {% if address.country %}
-                    <br>
-                    Country: {{ address.country }}
-                {% endif %}
-                {% if address.postOfficeBox %}
-                    <br>
-                    Post office box: {{ address.postOfficeBox }}
-                {% endif %}
-                {% if address.postcode %}
-                    <br>
-                    Postal code: {{ address.postcode }}
-                {% endif %}
-                {% if address.countryCode %}
-                    <br>
-                    Country code: {{ address.countryCode }}
-                {% endif %}
+                <br/>
+                {% for c in address.components %}
+                    {{ c.value|linebreaksbr }}
+                {% empty %}
+                    {{ address.full|linebreaksbr }}
+                {% endfor %}
                 {% if address.coordinates %}
                     <br>
                     Coordinates: <a href="{{ address.coordinates }}">{{ address.coordinates }}</a>
                 {% endif %}
-                {% if online.isPreferred %}<br/>Preferred{% endif %}
+                {% if address.timeZone %}
+                    <br>
+                    Time zone: {{ address.timeZone }}
+                {% endif %}
             </p>
         {% endfor %}
-        {% for anniversary in card.anniversaries %}
+        {% for _, link in card.links.items %}
             <p>
-                <b>
-                    {% if anniversary.type == "birth" %}
-                       Birthday:
-                    {% elif anniversary.type == "death" %}
-                        Death:
-                    {% elif anniversary.type == "other" %}
-                        Other:
+                <b>Link:</b> <a href="{{ link.url }}">{{ link.url }}</a>
+                {% if link.kind == "contact" %}<span class="badge bg-primary">Contact</span>{% endif %}
+            </p>
+        {% endfor %}
+        {% for _note in card.notes.items %}
+            <p>
+                <b>Note:</b> {{ note.note }}
+                {% if note.created %}
+                    <br/>
+                    <b>Created:</b> {{ note.created }}
+                {% endif %}
+                {% if note.author %}
+                    <br/>
+                    <b>Author:</b>
+                    {% if note.author.uri %}
+                        <a href="{{ note.author.uri }}">{{ note.author.name }}</a>
+                    {% else %}
+                        {{ note.author.name }}
                     {% endif %}
-                    {% if anniversary.label %}({{ anniversary.label }}){% endif %}
-                </b>
-                {{ anniversary.date }}
-            </p>
-        {% endfor %}
-        {% for personal_info in card.personalInfo %}
-            <p>
-                <b>
-                    {% if personal_info.type == "expertise" %}
-                        Expertise:
-                    {% elif personal_info.type == "hobby" %}
-                        Hobby:
-                    {% elif personal_info.type == "interest" %}
-                        Interest:
-                    {% elif personal_info.type == "other" %}
-                        Other:
-                    {% endif %}
-                    {% if anniversary.level %}({{ anniversary.level }}){% endif %}
-                </b>
-                {{ personal_info.value }}
-            </p>
-        {% endfor %}
-        {% for note in card.notes %}
-            <p>
-                <b>Note:</b>  {{ note.value }}
+                {% endif %}
             </p>
         {% endfor %}
     </div>
