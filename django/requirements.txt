@@ -4,3 +4,6 @@ protobuf
 psycopg2-binary
 gunicorn
 django-cockroachdb==4.2.*
+django-storages
+boto3
+django-xff

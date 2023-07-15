@@ -133,28 +133,4 @@ spec:
     - port: 80
       targetPort: 80
       name: nginx
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: whois-ingress
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt"
-    nginx.ingress.kubernetes.io/proxy-body-size: "0"
-    nginx.ingress.kubernetes.io/enable-cors: "true"
-spec:
-  tls:
-    - hosts:
-        - whois-web.as207960.net
-      secretName: whois-tls
-  rules:
-  - host: whois-web.as207960.net
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: whois-nginx
-            port:
-              number: 80
+

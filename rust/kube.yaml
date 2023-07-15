@@ -31,6 +31,8 @@ spec:
           ports:
             - containerPort: 43
           env:
+            - name: RUST_LOG
+              value: "info"
             - name: GRPC_SERVER
               value: "http://domains-whois-grpc:50051"
 ---

@@ -1,27 +1,3 @@
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: whois-django-static
-spec:
-  storageClassName: standard
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 1Gi
-#---
-#kind: PersistentVolumeClaim
-#apiVersion: v1
-#metadata:
-#  name: whois-django-media
-#spec:
-#  storageClassName: standard
-#  accessModes:
-#    - ReadWriteMany
-#  resources:
-#    requests:
-#      storage: 1Gi
----
 kind: ConfigMap
 apiVersion: v1
 metadata:
@@ -33,6 +9,13 @@ data:
   DB_HOST: "cockroachdb"
   DB_NAME: "whois"
   WHOIS_ADDR: "domains-whois-grpc:50051"
+  S3_ENDPOINT: "https://s3.as207960.net"
+  S3_REGION: "garage"
+  S3_BUCKET: "whois-web-django"
+  S3_ACCESS_KEY_ID: "GKbd4fc9c65056361f616775ed"
+  S3_CUSTOM_DOMAIN: "whois-web-django.content.as207960.net"
+  STATIC_URL: "https://whois-web-django.content.as207960.net/"
+  MEDIA_URL: "https://whois-web-django.content.as207960.net/"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -55,18 +38,11 @@ spec:
         app: whois
         part: django
     spec:
-      volumes:
-        - name: static
-          persistentVolumeClaim:
-            claimName: whois-django-static
       initContainers:
         - name: django
           image: as207960/whois-django:(version)
           imagePullPolicy: Always
           command: ["sh", "-c", "python3 manage.py collectstatic --noinput && python3 manage.py migrate"]
-          volumeMounts:
-            - mountPath: "/app/static/"
-              name: static
           envFrom:
             - configMapRef:
                 name: whois-django-conf
@@ -75,6 +51,8 @@ spec:
               prefix: "DB_"
             - secretRef:
                 name: whois-django-secret
+            - secretRef:
+                name: whois-django-s3
       containers:
         - name: gunicorn
           image: as207960/whois-django:(version)
@@ -82,9 +60,6 @@ spec:
           command: ["gunicorn", "-w", "8", "-b", "[::]:8000", "--forwarded-allow-ips", "*", "--access-logfile", "-", "whois_client.wsgi:application"]
           ports:
             - containerPort: 8000
-          volumeMounts:
-            - mountPath: "/app/static/"
-              name: static
           envFrom:
             - configMapRef:
                 name: whois-django-conf
@@ -93,6 +68,8 @@ spec:
               prefix: "DB_"
             - secretRef:
                 name: whois-django-secret
+            - secretRef:
+                name: whois-django-s3
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -107,10 +84,12 @@ spec:
   - Ingress
   ingress:
   - from:
-    - podSelector:
-        matchLabels:
-          app: whois
-          part: nginx
+      - namespaceSelector:
+          matchLabels:
+            app.kubernetes.io/name: ingress-nginx
+        podSelector:
+          matchLabels:
+            app.kubernetes.io/name: ingress-nginx
     ports:
     - protocol: TCP
       port: 8000
@@ -129,3 +108,28 @@ spec:
   ports:
     - port: 8000
       targetPort: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: whois-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+spec:
+  tls:
+    - hosts:
+        - whois-web.as207960.net
+      secretName: whois-tls
+  rules:
+    - host: whois-web.as207960.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: whois-django
+                port:
+                  number: 8000
