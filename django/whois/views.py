@@ -702,8 +702,8 @@ def map_js_card(card: rdap_pb2.JSCard):
             card_dict["organizations"][k]["name"] = v.name.value
         if v.units:
             card_dict["organizations"][k]["units"] = [map_org_unit(u) for u in v.units]
-        if v.HasField("sort_an"):
-            card_dict["organizations"][k]["sortAs"] = v.sort_an.value
+        if v.HasField("sort_as"):
+            card_dict["organizations"][k]["sortAs"] = v.sort_as.value
         if v.HasField("context"):
             card_dict["organizations"][k]["contexts"] = map_context(v.context)
 
