@@ -905,7 +905,7 @@ def map_js_card(card: rdap_pb2.JSCard):
         else:
             continue
 
-        card_dict["links"][k] = map_resource(k.resource)
+        card_dict["links"][k] = map_resource(v.resource)
         card_dict["links"][k]["@type"] = "Link"
         card_dict["links"][k]["kind"] = t
 
@@ -922,7 +922,7 @@ def map_js_card(card: rdap_pb2.JSCard):
         else:
             continue
 
-        card_dict["media"][k] = map_resource(k.resource)
+        card_dict["media"][k] = map_resource(v.resource)
         card_dict["media"][k]["@type"] = "Media"
         card_dict["media"][k]["kind"] = t
 
