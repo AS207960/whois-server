@@ -302,8 +302,9 @@ def map_js_card_to_jcard(card: rdap_pb2.JSCard):
         elements.append(["nickname", {}, "text", nn])
 
     for org in card.organisations.values():
-        units = ';'.join([org.name] + [u.name for u in org.units])
-        elements.append(["org", {}, "text", units])
+        if org.name:
+            units = ';'.join([org.name.value] + [u.name for u in org.units])
+            elements.append(["org", {}, "text", units])
 
     for title in card.titles.values():
         if title.kind == rdap_pb2.JSCard.Title.Role:
