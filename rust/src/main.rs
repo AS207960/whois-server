@@ -297,16 +297,18 @@ fn js_card_to_whois(card: &rdap::JsCard) -> Vec<String> {
             let mut out = String::new();
             let mut seen_separator = true;
             for component in &address.components {
-                if seen_separator {
-                    seen_separator = false;
+                let is_separator = rdap::js_card::address::address_component::Kind::from_i32(component.kind)
+                    == Some(rdap::js_card::address::address_component::Kind::Separator);
+                if !is_separator {
+                    if seen_separator {
+                        seen_separator = false;
+                    } else {
+                        out += address.default_seperator.as_deref().unwrap_or(" ");
+                    }
                 } else {
-                    out += address.default_seperator.as_deref().unwrap_or(" ");
-                }
-                out += &component.value;
-                if rdap::js_card::address::address_component::Kind::from_i32(component.kind)
-                    == Some(rdap::js_card::address::address_component::Kind::Separator) {
                     seen_separator = true;
                 }
+                out += &component.value;
             }
             Some(out)
         };
