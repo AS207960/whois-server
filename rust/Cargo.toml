@@ -2,20 +2,20 @@
 name = "whois-server"
 version = "0.1.0"
 authors = ["Q <q@misell.cymru>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tonic = "0.2"
-tokio = { version = "0.2", features = ["tcp", "macros", "dns"] }
+tonic = "0.10"
+tokio = { version = "1", features = ["macros", "time", "rt-multi-thread"] }
 log = "0.4"
-prost = "0.6"
-prost-types = "0.6"
+prost = "0.12"
+prost-types = "0.12"
 lazy_static = "1.4"
 dotenv = "0.15"
-idna = "0.2"
+idna = "0.4"
 chrono = "0.4"
 
 [build-dependencies]
-tonic-build = "0.2"
+tonic-build = "0.10"

@@ -24,7 +24,7 @@ lazy_static! {
 async fn main() {
     dotenv::dotenv().ok();
 
-    let mut listener = tokio::net::TcpListener::bind("[::]:43").await.expect("Unable to bind to socket");
+    let listener = tokio::net::TcpListener::bind("[::]:43").await.expect("Unable to bind to socket");
     let client = rdap::rdap_client::RdapClient::connect(
         std::env::var("GRPC_SERVER").unwrap_or("http://[::1]:50051".to_string())
     ).await.expect("Unable to connect to gRPC server");
@@ -34,10 +34,13 @@ async fn main() {
             Ok(s) => s,
             Err(e) => {
                 error!("Error accepting connection: {}", e);
-                return
+                return;
             }
         };
-        process_socket(socket, client.clone()).await;
+        let sock_client = client.clone();
+        tokio::task::spawn(async move {
+            process_socket(socket, sock_client).await;
+        });
     }
 }
 
@@ -50,8 +53,8 @@ fn proto_to_chrono(time: &prost_types::Timestamp) -> Option<chrono::DateTime<chr
 
 fn event_to_whois(event: &rdap::Event, prefix: &str) -> Vec<String> {
     let mut out = vec![];
-    match rdap::EventAction::from_i32(event.action) {
-        Some(a) => {
+    match rdap::EventAction::try_from(event.action) {
+        Ok(a) => {
             let event_type = match a {
                 rdap::EventAction::EventRegistration => "Creation",
                 rdap::EventAction::EventReregistration => "Reregistration",
@@ -72,8 +75,8 @@ fn event_to_whois(event: &rdap::Event, prefix: &str) -> Vec<String> {
                 },
                 None => {}
             }
-        },
-        None => {}
+        }
+        Err(_) => {}
     }
     out
 }
@@ -88,8 +91,8 @@ fn public_ids_to_whois(public_ids: &[rdap::PublicId]) -> Vec<String> {
 
 fn status_to_whois(status: i32, prefix: &str) -> Vec<String> {
     let mut out = vec![];
-    match rdap::Status::from_i32(status) {
-        Some(a) => {
+    match rdap::Status::try_from(status) {
+        Ok(a) => {
             let event_type = match a {
                 rdap::Status::Active => "ok",
                 rdap::Status::Validated => "validated",
@@ -127,8 +130,8 @@ fn status_to_whois(status: i32, prefix: &str) -> Vec<String> {
                 rdap::Status::ServerHold => "serverHold",
             };
             out.push(format!("{}Status: {}", prefix, event_type));
-        },
-        None => {}
+        }
+        Err(_) => {}
     }
     out
 }
@@ -147,7 +150,7 @@ fn remark_to_whois(remark: &rdap::Remark, prefix: &str) -> Vec<String> {
 
 fn js_card_to_whois(card: &rdap::JsCard) -> Vec<String> {
     let mut out = vec![];
-    if let Some(kind) = rdap::js_card::Kind::from_i32(card.kind) {
+    if let Ok(kind) = rdap::js_card::Kind::try_from(card.kind) {
         let kind = match kind {
             rdap::js_card::Kind::Individual => "Individual",
             rdap::js_card::Kind::Org => "Organisation",
@@ -181,8 +184,8 @@ fn js_card_to_whois(card: &rdap::JsCard) -> Vec<String> {
                     out += name.default_separator.as_deref().unwrap_or(" ");
                 }
                 out += &component.value;
-                if rdap::js_card::name::name_component::Kind::from_i32(component.kind)
-                    == Some(rdap::js_card::name::name_component::Kind::Separator) {
+                if rdap::js_card::name::name_component::Kind::try_from(component.kind)
+                    == Ok(rdap::js_card::name::name_component::Kind::Separator) {
                     seen_separator = true;
                 }
             }
@@ -204,11 +207,11 @@ fn js_card_to_whois(card: &rdap::JsCard) -> Vec<String> {
         }
     }
     for (_, title) in &card.titles {
-        match rdap::js_card::title::Kind::from_i32(title.kind) {
-            Some(rdap::js_card::title::Kind::Title) => {
+        match rdap::js_card::title::Kind::try_from(title.kind) {
+            Ok(rdap::js_card::title::Kind::Title) => {
                 out.push(format!("Title: {}", title.name));
             }
-            Some(rdap::js_card::title::Kind::Role) => {
+            Ok(rdap::js_card::title::Kind::Role) => {
                 out.push(format!("Role: {}", title.name));
             }
             _ => {}
@@ -242,29 +245,29 @@ fn js_card_to_whois(card: &rdap::JsCard) -> Vec<String> {
     for (_, phone) in &card.phones {
         let mut name = "Phone".to_string();
         for f in &phone.features {
-            match rdap::js_card::phone::Feature::from_i32(*f) {
-                Some(rdap::js_card::phone::Feature::Mobile) => {
+            match rdap::js_card::phone::Feature::try_from(*f) {
+                Ok(rdap::js_card::phone::Feature::Mobile) => {
                     name += ", mobile";
                 }
-                Some(rdap::js_card::phone::Feature::Voice) => {
+                Ok(rdap::js_card::phone::Feature::Voice) => {
                     name += ", voice";
                 }
-                Some(rdap::js_card::phone::Feature::Text) => {
+                Ok(rdap::js_card::phone::Feature::Text) => {
                     name += ", text";
                 }
-                Some(rdap::js_card::phone::Feature::Video) => {
+                Ok(rdap::js_card::phone::Feature::Video) => {
                     name += ", video";
                 }
-                Some(rdap::js_card::phone::Feature::MainNumber) => {
+                Ok(rdap::js_card::phone::Feature::MainNumber) => {
                     name += ", main number";
                 }
-                Some(rdap::js_card::phone::Feature::Textphone) => {
+                Ok(rdap::js_card::phone::Feature::Textphone) => {
                     name += ", textphone";
                 }
-                Some(rdap::js_card::phone::Feature::Fax) => {
+                Ok(rdap::js_card::phone::Feature::Fax) => {
                     name += ", fax";
                 }
-                Some(rdap::js_card::phone::Feature::Pager) => {
+                Ok(rdap::js_card::phone::Feature::Pager) => {
                     name += ", pager";
                 }
                 _ => {}
@@ -297,8 +300,8 @@ fn js_card_to_whois(card: &rdap::JsCard) -> Vec<String> {
             let mut out = String::new();
             let mut seen_separator = true;
             for component in &address.components {
-                let is_separator = rdap::js_card::address::address_component::Kind::from_i32(component.kind)
-                    == Some(rdap::js_card::address::address_component::Kind::Separator);
+                let is_separator = rdap::js_card::address::address_component::Kind::try_from(component.kind)
+                    == Ok(rdap::js_card::address::address_component::Kind::Separator);
                 if !is_separator {
                     if seen_separator {
                         seen_separator = false;
@@ -325,8 +328,8 @@ fn js_card_to_whois(card: &rdap::JsCard) -> Vec<String> {
         }
     }
     for (_, link) in &card.links {
-        let name = match rdap::js_card::link::Kind::from_i32(link.kind) {
-            Some(rdap::js_card::link::Kind::Contact) => "Contact link",
+        let name = match rdap::js_card::link::Kind::try_from(link.kind) {
+            Ok(rdap::js_card::link::Kind::Contact) => "Contact link",
             _ => "Link"
         };
         if let Some(res) = &link.resource {
@@ -346,8 +349,8 @@ fn entity_to_whois(entity: &rdap::Entity, prefix: &str) -> Vec<String> {
     let mut lines = vec![];
     let mut roles = vec![];
     for role in &entity.roles {
-        match rdap::EntityRole::from_i32(*role) {
-            Some(r) => roles.push(match r {
+        match rdap::EntityRole::try_from(*role) {
+            Ok(r) => roles.push(match r {
                 rdap::EntityRole::RoleRegistrant => "Registrant",
                 rdap::EntityRole::RoleTechnical => "Tech",
                 rdap::EntityRole::RoleAdministrative => "Admin",
@@ -360,11 +363,11 @@ fn entity_to_whois(entity: &rdap::Entity, prefix: &str) -> Vec<String> {
                 rdap::EntityRole::RoleNotifications => "Notifications",
                 rdap::EntityRole::RoleNoc => "NOC",
             }),
-            None => {}
+            Err(_) => {}
         }
     }
     lines.push(format!("Handle: {}", entity.handle));
-     for event in &entity.events {
+    for event in &entity.events {
         lines.extend(event_to_whois(event, ""));
     }
     for status in &entity.statuses {
@@ -458,7 +461,7 @@ fn domain_to_whois(domain: &rdap::Domain) -> Vec<String> {
     out
 }
 
-async fn process_socket<T: tokio::io::AsyncRead + tokio::io::AsyncWrite + std::marker::Unpin>(mut socket: T, mut client: rdap::rdap_client::RdapClient<tonic::transport::Channel>) {
+async fn process_socket<T: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin>(mut socket: T, mut client: rdap::rdap_client::RdapClient<tonic::transport::Channel>) {
     let mut buf: Vec<u8> = vec![];
     loop {
         let byte = match socket.read_u8().await {
@@ -498,66 +501,79 @@ async fn process_socket<T: tokio::io::AsyncRead + tokio::io::AsyncWrite + std::m
         query: Some(rdap::domain_search_request::Query::Name(query_str_ascii))
     });
 
-     match client.domain_search(request).await {
-        Ok(r) => {
-            let response = r.into_inner();
-            match response.response {
-                Some(rdap::domain_search_response::Response::Success(success)) => {
-                    if success.data.is_empty() {
-                        match socket.write(b">>> No results\r\n\r\n").await {
-                            Ok(_) => {}
-                            Err(_) => {
-                                return;
-                            }
-                        };
-                    } else {
-                        for domain in &success.data {
-                            let out = domain_to_whois(domain);
-                            for l in &out {
-                                match socket.write(format!("{}\r\n", l).as_bytes()).await {
-                                    Ok(_) => {}
-                                    Err(_) => {
-                                        return;
-                                    }
-                                };
-                            }
-                            match socket.write(b"\r\n").await {
-                                Ok(_) => {}
-                                Err(_) => {
-                                    return;
-                                }
-                            };
-                        }
-                    }
-                },
-                Some(rdap::domain_search_response::Response::Redirect(_)) => {
-                    match socket.write(b">>> Error: Object not found here\r\n\r\n").await {
-                        Ok(_) => {}
-                        Err(_) => {
-                            return;
-                        }
-                    };
-                }
-                Some(rdap::domain_search_response::Response::Error(error)) => {
-                    match socket.write(format!(">>> Error: {}\r\n\r\n", error.description).as_bytes()).await {
-                        Ok(_) => {}
-                        Err(_) => {
-                            return;
-                        }
-                    };
-                }
-                None => {}
-            }
-        },
-        Err(e) => {
-            match socket.write(format!(">>> Error: {:?}, {}\r\n\r\n", e.code(), e.message()).as_bytes()).await {
+    tokio::select! {
+        _ = tokio::time::sleep(std::time::Duration::from_secs(30)) => {
+             match socket.write(b">>> Internal server error\r\n\r\n").await {
                 Ok(_) => {}
                 Err(_) => {
                     return;
                 }
             };
         }
-    };
+        r = client.domain_search(request) => {
+            match r {
+                Ok(r) => {
+                    let response = r.into_inner();
+                    match response.response {
+                        Some(rdap::domain_search_response::Response::Success(success)) => {
+                            if success.data.is_empty() {
+                                match socket.write(b">>> No results\r\n\r\n").await {
+                                    Ok(_) => {}
+                                    Err(_) => {
+                                        return;
+                                    }
+                                };
+                            } else {
+                                for domain in &success.data {
+                                    let out = domain_to_whois(domain);
+                                    for l in &out {
+                                        match socket.write(format!("{}\r\n", l).as_bytes()).await {
+                                            Ok(_) => {}
+                                            Err(_) => {
+                                                return;
+                                            }
+                                        };
+                                    }
+                                    match socket.write(b"\r\n").await {
+                                        Ok(_) => {}
+                                        Err(_) => {
+                                            return;
+                                        }
+                                    };
+                                }
+                            }
+                        },
+                        Some(rdap::domain_search_response::Response::Redirect(_)) => {
+                            match socket.write(b">>> Error: Object not found here\r\n\r\n").await {
+                                Ok(_) => {}
+                                Err(_) => {
+                                    return;
+                                }
+                            };
+                        }
+                        Some(rdap::domain_search_response::Response::Error(error)) => {
+                            match socket.write(format!(">>> Error: {}\r\n\r\n", error.description).as_bytes()).await {
+                                Ok(_) => {}
+                                Err(_) => {
+                                    return;
+                                }
+                            };
+                        }
+                        None => {}
+                    }
+                },
+                Err(e) => {
+                    match socket.write(format!(">>> Error: {:?}, {}\r\n\r\n", e.code(), e.message()).as_bytes()).await {
+                        Ok(_) => {}
+                        Err(_) => {
+                            return;
+                        }
+                    };
+                }
+            };
+        }
+    }
+
 
     match socket.write(&NOTICE).await {
         Ok(_) => {}
