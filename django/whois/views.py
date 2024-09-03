@@ -1139,8 +1139,10 @@ def make_rdap_response(data, status):
             "For more information on domain status codes, please visit https://icann.org/epp"
         ],
         "links": [{
+            "value": "https://icann.org/epp",
             "href": "https://icann.org/epp",
-            "title": "More information on domain status codes"
+            "title": "More information on domain status codes",
+            "rel": "help"
         }]
     }, {
         "title": "RDDS Inaccuracy Complaint Form",
@@ -1148,8 +1150,10 @@ def make_rdap_response(data, status):
             "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
         ],
         "links": [{
+            "value": "https://icann.org/wicf",
             "href": "https://icann.org/wicf",
-            "title": "ICANN RDDS Inaccuracy Complaint Form"
+            "title": "ICANN RDDS Inaccuracy Complaint Form",
+            "rel": "help"
         }]
     }, {
         "title": "Terms of Use",
@@ -1166,17 +1170,17 @@ def make_rdap_response(data, status):
     }, {
         "title": "Trans Rights",
         "description": [
-            "\x1b[38;5;81m████████ ██████   █████  ███    ██ ███████\x1b[0m",
-            "\x1b[38;5;81m   ██    ██   ██ ██   ██ ████   ██ ██     \x1b[0m",
-            "\x1b[38;5;218m   ██    ██████  ███████ ██ ██  ██ ███████\x1b[0m",
-            "\x1b[38;5;218m   ██    ██   ██ ██   ██ ██  ██ ██      ██\x1b[0m",
-            "\x1b[38;5;231m   ██    ██   ██ ██   ██ ██   ████ ███████\x1b[0m",
-            "                                            ",
-            "\x1b[38;5;231m██████  ██  ██████  ██   ██ ████████ ███████\x1b[0m",
-            "\x1b[38;5;218m██   ██ ██ ██       ██   ██    ██    ██     \x1b[0m",
-            "\x1b[38;5;218m██████  ██ ██   ███ ███████    ██    ███████\x1b[0m",
-            "\x1b[38;5;81m██   ██ ██ ██    ██ ██   ██    ██         ██\x1b[0m",
-            "\x1b[38;5;81m██   ██ ██  ██████  ██   ██    ██    ███████\x1b[0m",
+            "\x1b[38;5;81m████████ ██████   █████  ███    ██ ███████\x1b[0m\n"
+            "\x1b[38;5;81m   ██    ██   ██ ██   ██ ████   ██ ██     \x1b[0m\n"
+            "\x1b[38;5;218m   ██    ██████  ███████ ██ ██  ██ ███████\x1b[0m\n"
+            "\x1b[38;5;218m   ██    ██   ██ ██   ██ ██  ██ ██      ██\x1b[0m\n"
+            "\x1b[38;5;231m   ██    ██   ██ ██   ██ ██   ████ ███████\x1b[0m\n"
+            "                                            \n"
+            "\x1b[38;5;231m██████  ██  ██████  ██   ██ ████████ ███████\x1b[0m\n"
+            "\x1b[38;5;218m██   ██ ██ ██       ██   ██    ██    ██     \x1b[0m\n"
+            "\x1b[38;5;218m██████  ██ ██   ███ ███████    ██    ███████\x1b[0m\n"
+            "\x1b[38;5;81m██   ██ ██ ██    ██ ██   ██    ██         ██\x1b[0m\n"
+            "\x1b[38;5;81m██   ██ ██  ██████  ██   ██    ██    ███████\x1b[0m"
         ]
     }])
     http_res = HttpResponse(json.dumps(data), status=status, content_type="application/rdap+json")
