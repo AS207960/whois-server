@@ -1138,19 +1138,19 @@ def make_rdap_response(data, status):
         "description": [
             "For more information on domain status codes, please visit https://icann.org/epp"
         ],
-        "links": {
+        "links": [{
             "href": "https://icann.org/epp",
             "title": "More information on domain status codes"
-        }
+        }]
     }, {
         "title": "RDDS Inaccuracy Complaint Form",
         "description": [
             "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
         ],
-        "links": {
+        "links": [{
             "href": "https://icann.org/wicf",
             "title": "ICANN RDDS Inaccuracy Complaint Form"
-        }
+        }]
     }, {
         "title": "Terms of Use",
         "description": [
@@ -1201,9 +1201,9 @@ def rdap_help(request):
                 "entities?handle=XXXX",
                 "help",
             ],
-            "links": {
+            "links": [{
                 "href": "https://whois-web.as207960.net"
-            }
+            }]
         }]
     }, 200)
 
