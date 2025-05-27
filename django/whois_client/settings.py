@@ -139,8 +139,24 @@ AWS_S3_ADDRESSING_STYLE = "virtual"
 AWS_S3_SIGNATURE_VERSION = "s3v4"
 
 STORAGES = {
-    "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"},
-    "staticfiles": {"BACKEND": "storages.backends.s3boto3.S3ManifestStaticStorage"}
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "client_config": botocore.config.Config(
+                request_checksum_calculation="when_required",
+                response_checksum_validation="when_required",
+            )
+        }
+    },
+    "staticfiles": {
+        "BACKEND": "storages.backends.s3boto3.S3ManifestStaticStorage",
+        "OPTIONS": {
+            "client_config": botocore.config.Config(
+                request_checksum_calculation="when_required",
+                response_checksum_validation="when_required",
+            )
+        }
+    }
 }
 
 XFF_TRUSTED_PROXY_DEPTH = 1
